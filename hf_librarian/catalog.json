@@ -400,11 +400,12 @@
         "*.json",
         "*.txt",
         "*.model",
-        "*.fp16.safetensors"
+        "*.fp16.safetensors",
+        "shap_e_renderer/*.bin"
       ],
       "exclude": [],
       "quantization": "fp16",
-      "estimated_gib": 1.7,
+      "estimated_gib": 2.5,
       "difficulty": "hard",
       "rarity": "rare",
       "paper_implementation": true,
