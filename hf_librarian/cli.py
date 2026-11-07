@@ -1,7 +1,7 @@
 import argparse
 import json
 import sys
-from . import Catalog, Librarian, __version__
+from . import Catalog, Librarian, Verifier, __version__
 
 def main():
     p = argparse.ArgumentParser(prog="hf-librarian")
@@ -18,6 +18,8 @@ def main():
     block = sub.add_parser("block"); block.add_argument("id"); block.add_argument("--reason", default="")
     unblock = sub.add_parser("unblock"); unblock.add_argument("id")
     setting = sub.add_parser("set"); setting.add_argument("key"); setting.add_argument("value", help="JSON value")
+    verify = sub.add_parser("verify"); verify.add_argument("--id", required=True); verify.add_argument("--backend", choices=["fxb", "fxbex"], default="fxb"); verify.add_argument("--executable"); verify.add_argument("--version"); verify.add_argument("--source"); verify.add_argument("--timeout", type=int, default=1800); verify.add_argument("--build-arg", action="append", default=[]); verify.add_argument("--results-dir")
+    hist = sub.add_parser("history"); hist.add_argument("--id"); hist.add_argument("--backend", choices=["fxb", "fxbex"]); hist.add_argument("--results-dir")
     args = p.parse_args(); c = Catalog(args.catalog)
     try:
         if args.command == "categories": result = c.categories()
@@ -38,7 +40,13 @@ def main():
         else:
             def event(e): print(json.dumps(e, ensure_ascii=False), file=sys.stderr, flush=True)
             with Librarian(c, max_concurrent=getattr(args, "workers", None), on_event=event) as lib:
-                if args.command == "status": result = lib.usage()
+                if args.command == "verify":
+                    result = Verifier(lib,args.results_dir).verify(args.id,args.backend,args.executable,args.version,args.source,args.timeout,args.build_arg)
+                    print(json.dumps(result,ensure_ascii=False,indent=2))
+                    if result['status'] != 'passed': sys.exit(1)
+                    return
+                elif args.command == "history": result = Verifier(lib,args.results_dir).history(args.id,args.backend)
+                elif args.command == "status": result = lib.usage()
                 elif args.command == "get": result = lib.request(model_id=args.id, category=args.category)
                 else:
                     futures = [lib.request_async(category=x) for x in args.category]
