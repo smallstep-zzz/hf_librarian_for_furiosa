@@ -36,3 +36,22 @@ class Tests(unittest.TestCase):
         self.assertEqual(events[0]['event'],'available')
 
 if __name__ == '__main__': unittest.main()
+
+class VerificationTests(unittest.TestCase):
+    def test_version_mismatch_is_recorded_without_build(self):
+        from hf_librarian import Verifier
+        with tempfile.TemporaryDirectory() as temp:
+            binary=Path(temp)/'fxb'
+            binary.write_text('#!/bin/sh\necho "fxb v1.2.3"\n')
+            binary.chmod(0o755)
+            class FakeCatalog:
+                def get(self, model): return {'id':model}
+                def blacklist(self): return {}
+            class FakeLibrarian:
+                catalog=FakeCatalog()
+                def request(self, **kwargs): raise AssertionError('must not download')
+            v=Verifier(FakeLibrarian(),temp)
+            result=v.verify('org/model',executable=str(binary),version='9.9.9')
+            self.assertEqual(result['status'],'blocked')
+            self.assertEqual(result['actual_version'],'1.2.3')
+            self.assertEqual(v.history('org/model')[0]['id'],result['id'])
