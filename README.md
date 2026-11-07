@@ -48,3 +48,34 @@ with Librarian(on_event=event) as lib:
 ## 모델 목록 갱신 스킬
 
 `skills/hf-librarian/SKILL.md`를 지원하는 에이전트의 스킬 경로에 설치하거나 해당 파일을 읽도록 지시하세요. 신모델 조사, 외부에서 예고한 테스트의 사전 준비, 모델/카테고리 관리 절차가 있습니다. 스킬 자체는 자동 감시나 예약 작업을 만들지 않습니다.
+
+## FXB와 FXBEX 생성 검증 및 이력
+
+```bash
+# 기본값은 PyPI 최신 버전을 확인하고, 선택한 실행 파일이 일치할 때만 실행합니다.
+hf-librarian verify --id Qwen/Qwen3-0.6B --backend fxb --timeout 1800
+# 다른 버전은 해당 버전이 설치된 실행 파일을 지정하고 출력 버전을 대조합니다.
+hf-librarian verify --id Qwen/Qwen3-0.6B --backend fxb --executable /usr/local/bin/fxb --version 2026.4.0
+hf-librarian history --id Qwen/Qwen3-0.6B
+```
+
+기본 실행 파일은 PATH의 `fxb`/`fxbex`이며 기본 동작은 PyPI에서 최신 `furiosa-llm`/`fxbex` 버전을 조회하고 일치하지 않으면 중단합니다. SDK를 자동 설치·업그레이드하지 않습니다. 사내 SDK 인덱스가 PyPI와 다른 경우 최신 여부를 따로 확인하고 `--executable`과 `--version`을 명시하세요. 해당 버전의 실제 실행 파일이 필요하며, 버전 문자열만 바꿔 다른 버전을 실행할 수 없습니다. FXB 기록의 `actual_version`은 `fxb` 버전이며, 확인 가능한 경우 `compiler_version`에 `furiosa-tcc` 버전이 따로 기록됩니다. 조회할 수 없으면 null입니다.
+
+공식 `fxb build`는 캐시된 모델의 snapshot을 사용하고, 성공 판정에는 실제 파일과 `fxb show` 성공이 필요합니다. 컴파일 옵션은 `--build-arg=--max-model-len --build-arg=512`처럼 전달합니다. 무거운 작업일 수 있으므로 시간과 디스크 여유를 고려하세요.
+
+FXBEX는 Hugging Face 모델을 직접 컴파일하지 않고, 별도로 만들어진 컴파일 디렉터리를 패키징합니다. 준비된 디렉터리가 있고 `manifest.json`의 `provenance.source_url` 및 `provenance.revision`이 이 모델과 캐시 revision에 일치할 때 사용합니다.
+
+```bash
+hf-librarian verify --id Qwen/Qwen3-0.6B --backend fxbex --source /path/to/compiled-directory
+```
+
+FXBEX 결과는 `fxbex inspect`를 통과해야 성공입니다. 준비 입력이 없거나 버전이 다르면 `blocked`, 빌드·검사 실패는 `failed`, 제한 시간 초과는 `timeout`으로 이력에 남습니다. 결과와 로그, 생성 파일, SHA-256, 입력 revision, 버전 및 명령은 기본 `~/.local/share/hf-librarian/verification`에 저장합니다. `--results-dir` 또는 `HF_LIBRARIAN_RESULTS`로 변경할 수 있습니다. 모델 실행·정확성·NPU 트레이스는 이 기능이 검증하지 않습니다. 버전별 이력은 삭제하지 않고 누적하며 캐시나 GitHub에는 무거운 결과 파일을 넣지 않습니다.
+
+```python
+from hf_librarian import Librarian, Verifier
+with Librarian() as lib:
+    verifier = Verifier(lib)
+    result = verifier.verify('Qwen/Qwen3-0.6B', backend='fxb', version='2026.4.0')
+    print(result['status'], result['actual_version'], result.get('compiler_version'))
+    print(verifier.history('Qwen/Qwen3-0.6B'))
+```
