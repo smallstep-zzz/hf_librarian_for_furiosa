@@ -1,0 +1,572 @@
+{
+  "schema_version": 1,
+  "settings": {
+    "cache_limit_gib": 200,
+    "min_free_gib": 100,
+    "max_model_gib": 10,
+    "max_concurrent_downloads": 2
+  },
+  "categories": {
+    "language-generation": "Autoregressive and alternative language models",
+    "image-generation": "Text-to-image diffusion",
+    "detection": "Object detection and YOLO",
+    "segmentation": "Semantic and promptable segmentation",
+    "image-to-3d": "Single image to 3D assets",
+    "bio-generation": "Protein and biological sequence models",
+    "speech": "Speech recognition and audio",
+    "vision": "Image classification and vision transformers",
+    "embedding": "Text and multimodal embeddings"
+  },
+  "blacklist": {},
+  "models": [
+    {
+      "id": "Qwen/Qwen3-0.6B",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "bf16",
+      "estimated_gib": 1.3,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "Transformer with grouped attention",
+      "npu_status": "untested",
+      "priority": 1,
+      "source": "https://huggingface.co/Qwen/Qwen3-0.6B"
+    },
+    {
+      "id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.6,
+      "difficulty": "easy",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "small transformer baseline",
+      "npu_status": "untested",
+      "priority": 2,
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct"
+    },
+    {
+      "id": "state-spaces/mamba-130m-hf",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.6,
+      "difficulty": "hard",
+      "rarity": "rare",
+      "paper_implementation": true,
+      "notes": "selective state space scan; paper architecture",
+      "npu_status": "untested",
+      "priority": 3,
+      "source": "https://huggingface.co/state-spaces/mamba-130m-hf"
+    },
+    {
+      "id": "microsoft/phi-2",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp16",
+      "estimated_gib": 5.6,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "partial rotary embeddings",
+      "npu_status": "untested",
+      "priority": 4,
+      "source": "https://huggingface.co/microsoft/phi-2"
+    },
+    {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp16",
+      "estimated_gib": 2.3,
+      "difficulty": "easy",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "Llama-family baseline",
+      "npu_status": "untested",
+      "priority": 5,
+      "source": "https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    },
+    {
+      "id": "stabilityai/sd-turbo",
+      "categories": [
+        "image-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.fp16.safetensors"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp16",
+      "estimated_gib": 2.5,
+      "difficulty": "hard",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "diffusion UNet, VAE and text encoder",
+      "npu_status": "untested",
+      "priority": 6,
+      "source": "https://huggingface.co/stabilityai/sd-turbo"
+    },
+    {
+      "id": "segmind/tiny-sd",
+      "categories": [
+        "image-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.bin"
+      ],
+      "exclude": [],
+      "quantization": "fp32",
+      "estimated_gib": 1.1,
+      "difficulty": "medium",
+      "rarity": "uncommon",
+      "paper_implementation": false,
+      "notes": "small diffusion baseline",
+      "npu_status": "untested",
+      "priority": 7,
+      "source": "https://huggingface.co/segmind/tiny-sd"
+    },
+    {
+      "id": "hustvl/yolos-tiny",
+      "categories": [
+        "detection"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.03,
+      "difficulty": "medium",
+      "rarity": "uncommon",
+      "paper_implementation": false,
+      "notes": "transformer object detection",
+      "npu_status": "untested",
+      "priority": 8,
+      "source": "https://huggingface.co/hustvl/yolos-tiny"
+    },
+    {
+      "id": "facebook/detr-resnet-50",
+      "categories": [
+        "detection"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.17,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "convolution and attention detection",
+      "npu_status": "untested",
+      "priority": 9,
+      "source": "https://huggingface.co/facebook/detr-resnet-50"
+    },
+    {
+      "id": "Ultralytics/YOLO11",
+      "categories": [
+        "detection"
+      ],
+      "revision": "main",
+      "include": [
+        "yolo11n.pt",
+        "*.yaml",
+        "*.md"
+      ],
+      "exclude": [],
+      "quantization": "fp32",
+      "estimated_gib": 0.1,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "YOLO detector; verify supplied weights and loader",
+      "npu_status": "untested",
+      "priority": 10,
+      "source": "https://huggingface.co/Ultralytics/YOLO11"
+    },
+    {
+      "id": "nvidia/segformer-b0-finetuned-ade-512-512",
+      "categories": [
+        "segmentation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.02,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "hierarchical transformer segmentation",
+      "npu_status": "untested",
+      "priority": 11,
+      "source": "https://huggingface.co/nvidia/segformer-b0-finetuned-ade-512-512"
+    },
+    {
+      "id": "facebook/sam-vit-base",
+      "categories": [
+        "segmentation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.4,
+      "difficulty": "hard",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "promptable masks",
+      "npu_status": "untested",
+      "priority": 12,
+      "source": "https://huggingface.co/facebook/sam-vit-base"
+    },
+    {
+      "id": "openai/shap-e-img2img",
+      "categories": [
+        "image-to-3d"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.fp16.safetensors"
+      ],
+      "exclude": [],
+      "quantization": "fp16",
+      "estimated_gib": 1.7,
+      "difficulty": "hard",
+      "rarity": "rare",
+      "paper_implementation": true,
+      "notes": "implicit 3D field and diffusion paper",
+      "npu_status": "untested",
+      "priority": 13,
+      "source": "https://huggingface.co/openai/shap-e-img2img"
+    },
+    {
+      "id": "facebook/esm2_t6_8M_UR50D",
+      "categories": [
+        "bio-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.04,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "protein masked language model",
+      "npu_status": "untested",
+      "priority": 14,
+      "source": "https://huggingface.co/facebook/esm2_t6_8M_UR50D"
+    },
+    {
+      "id": "nferruz/ProtGPT2",
+      "categories": [
+        "bio-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.bin"
+      ],
+      "exclude": [],
+      "quantization": "fp32",
+      "estimated_gib": 3.1,
+      "difficulty": "hard",
+      "rarity": "uncommon",
+      "paper_implementation": false,
+      "notes": "autoregressive protein sequence generation",
+      "npu_status": "untested",
+      "priority": 15,
+      "source": "https://huggingface.co/nferruz/ProtGPT2"
+    },
+    {
+      "id": "openai/whisper-tiny",
+      "categories": [
+        "speech"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.16,
+      "difficulty": "medium",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "encoder decoder speech recognition",
+      "npu_status": "untested",
+      "priority": 16,
+      "source": "https://huggingface.co/openai/whisper-tiny"
+    },
+    {
+      "id": "google/vit-base-patch16-224",
+      "categories": [
+        "vision"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.35,
+      "difficulty": "easy",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "vision transformer baseline",
+      "npu_status": "untested",
+      "priority": 17,
+      "source": "https://huggingface.co/google/vit-base-patch16-224"
+    },
+    {
+      "id": "sentence-transformers/all-MiniLM-L6-v2",
+      "categories": [
+        "embedding"
+      ],
+      "revision": "main",
+      "include": [
+        "*.json",
+        "*.txt",
+        "*.model",
+        "*.safetensors",
+        "*.py",
+        "*.tiktoken",
+        "*.vocab",
+        "*.merges"
+      ],
+      "exclude": [
+        "*.onnx",
+        "*.gguf",
+        "*.bin",
+        "*.h5",
+        "*.msgpack"
+      ],
+      "quantization": "fp32",
+      "estimated_gib": 0.09,
+      "difficulty": "easy",
+      "rarity": "common",
+      "paper_implementation": false,
+      "notes": "sentence embeddings",
+      "npu_status": "untested",
+      "priority": 18,
+      "source": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
+    }
+  ]
+}
