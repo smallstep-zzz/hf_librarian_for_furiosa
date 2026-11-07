@@ -568,6 +568,28 @@
       "npu_status": "untested",
       "priority": 18,
       "source": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
+    },
+    {
+      "id": "Qwen/Qwen3-0.6B-GGUF",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "Qwen3-0.6B-Q8_0.gguf",
+        "README.md",
+        "LICENSE"
+      ],
+      "exclude": [],
+      "quantization": "Q8_0",
+      "estimated_gib": 0.6,
+      "difficulty": "hard",
+      "rarity": "uncommon",
+      "paper_implementation": false,
+      "notes": "8-bit GGUF format coverage; loader and compiler compatibility unverified",
+      "npu_status": "untested",
+      "priority": 60,
+      "source": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF"
     }
   ]
 }
