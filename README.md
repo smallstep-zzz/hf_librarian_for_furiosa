@@ -69,7 +69,7 @@ FXBEX는 Hugging Face 모델을 직접 컴파일하지 않고, 별도로 만들�
 hf-librarian verify --id Qwen/Qwen3-0.6B --backend fxbex --source /path/to/compiled-directory
 ```
 
-FXBEX 결과는 `fxbex inspect`를 통과해야 성공입니다. 준비 입력이 없거나 버전이 다르면 `blocked`, 빌드·검사 실패는 `failed`, 제한 시간 초과는 `timeout`으로 이력에 남습니다. 결과와 로그, 생성 파일, SHA-256, 입력 revision, 버전 및 명령은 기본 `~/.local/share/hf-librarian/verification`에 저장합니다. `--results-dir` 또는 `HF_LIBRARIAN_RESULTS`로 변경할 수 있습니다. 모델 실행·정확성·NPU 트레이스는 이 기능이 검증하지 않습니다. 버전별 이력은 삭제하지 않고 누적하며 캐시나 GitHub에는 무거운 결과 파일을 넣지 않습니다.
+FXBEX 결과는 `fxbex inspect`를 통과해야 성공입니다. 준비 입력이 없거나 버전이 다르면 `blocked`, 빌드·검사 실패는 `failed`, 제한 시간 초과는 `timeout`으로 이력에 남습니다. 결과와 로그, 생성 파일, SHA-256, 입력 revision, 버전 및 명령은 기본 `~/.cache/hf-librarian/verification`에 저장합니다. `--results-dir` 또는 `HF_LIBRARIAN_RESULTS`로 변경할 수 있습니다. 모델 실행·정확성·NPU 트레이스는 이 기능이 검증하지 않습니다. 버전별 이력은 삭제하지 않고 누적하며 캐시나 GitHub에는 무거운 결과 파일을 넣지 않습니다.
 
 ```python
 from hf_librarian import Librarian, Verifier
