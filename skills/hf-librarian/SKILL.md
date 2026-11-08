@@ -77,3 +77,8 @@ and return after one readiness/activity check. `activity JOB_ROOT` reports its
 current wave; STOP.json propagates to active workers. Watch for disk/memory gates.
 No auto-repair/LLM is hidden in this service. An exhausted queue waits for new
 catalog/rule input; it does not churn old tests to keep utilization high.
+
+
+## Hub research rate limits
+
+Prefer existing catalog entries and cached public model-card evidence before requesting Hub metadata. For a specific model, call `from hf_librarian.hub_research import HubResearch; HubResearch().model('org/model')`. This caches results for 24 hours, coordinates its own local processes, limits starts to 20 per 5 minutes and at least 5 seconds apart, and records a cooldown on HTTP 429. A `ResearchLimit` is a stop signal: do not immediately retry, fan out across models, or switch credentials/IP to evade the limit. This helper does not control other applications sharing the IP, SDK internal requests, or legacy `overnight` discovery; keep those jobs stopped or separately coordinated during research. Metadata and a public file listing do not prove that every weight is downloadable or that the model runs on NPU. Never download weights solely to populate the catalog unless asked.
