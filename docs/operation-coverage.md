@@ -14,3 +14,7 @@
 출처: [YOLO26 설명](https://docs.ultralytics.com/models/yolo26/), [YOLO26n 파일](https://huggingface.co/Ultralytics/YOLO26/blob/main/yolo26n.pt), [Whisper](https://huggingface.co/docs/transformers/model_doc/whisper), [DINOv3](https://huggingface.co/facebook/dinov3-vits16-pretrain-lvd1689m), [Mamba-2 논문](https://arxiv.org/abs/2405.21060), [SAM3](https://huggingface.co/facebook/sam3).
 
 과거 YOLO11 보고서 `/root/yolo11-rngd/PORTING_REPORT.json`은 `giangndm/yolo11-onnx` revision `8b180c762d5cf217886d16e64403508042207e4d`에 대한 640×640 FP32 시험을 기록한다. 보고된 런타임 추적은 NPU 88/88 그래프, CPU fallback 없음이며 전처리와 NMS는 호스트 작업이다. 이것은 다른 체크포인트나 새로운 재실행에 대한 근거가 아니다.
+
+## 2026-11-08 재검증
+
+기존 YOLO11 ONNX FXBEX의 아카이브 무결성 검사는 통과했다. 오프라인 NPU 실행은 어댑터의 source hash 검사에서 중단됐다. 현재 `/root/rngd-model-forge/compiler_engine/`의 `memory_diagnostics.py`, `qwen35_runtime.py`, `qwen_chat_service.py`가 패키지 기록과 다르다. 실행 증거나 새 결과는 생성되지 않았다. 해시 검사를 우회하거나 현재 공유 코드를 되돌리지 않는다. 정확히 일치하는 격리된 원본 환경을 마련하거나 최신 소스로 다시 빌드한 뒤 검증한다.
