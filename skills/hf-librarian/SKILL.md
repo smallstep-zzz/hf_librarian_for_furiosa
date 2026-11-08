@@ -58,3 +58,12 @@ once. It distinguishes actual supervisor death from model metadata preparation,
 CPU preparation, NPU queue/execution, completion and review-required stop. A launch
 readiness receipt alone is not proof the controller stayed alive. Use its bounded
 error excerpt before restarting. Do not claim full-night progress from startup.
+
+When the user authorizes completion/error notifications, attach the reusable
+`hf_librarian.notifications wait JOB_ROOT` as a detached server event recorder.
+It uses existing kernel completion events, not status polling. A separately
+started macOS `notifications.py desktop HOST JOB_ROOT` receiver delivers one
+native notification, retaining inbox/delivery receipts and retrying SSH only on
+connection failure. Keep notifications separate from the workload; loss of Mac
+connectivity must not cancel it. Native notification acceptance is not proof the
+user saw the banner. Do not promise a closed Codex chat wakes automatically.

@@ -155,3 +155,31 @@ hf-librarian activity /root/TPLMachine/reports/librarian-overnight-20261108-job-
 배치별 완료·실패 수, CPU/RAM 대기·NPU 큐/실행 상태, ETA, 마지막 활동 경과,
 실패 시 짧은 오류와 다음 조치를 JSON으로 반환합니다. 현재 단계만 알 수 있는
 경우 세부 연산을 추측하지 않습니다. 이 명령은 작업을 재시작하거나 감시하지 않습니다.
+
+### 완료·오류 이벤트와 개인 알림
+
+`python -m hf_librarian.notifications wait JOB_ROOT`는 Linux pidfd/inotify로
+감독 작업 종료를 기다리고, `JOB_ROOT/notifications/event.json`과 `events.jsonl`에
+완료/오류/검토 필요 이벤트를 중복 없이 기록합니다. 기존 detached supervisor로
+이 명령을 분리 실행하면 SSH/Mac 접속 종료에도 이벤트 기록이 유지됩니다.
+원본 작업은 변경하거나 재시작하지 않습니다.
+
+Mac에서는 다음 수신기를 별도 프로세스로 실행할 수 있습니다.
+
+```bash
+python3 hf_librarian/notifications.py desktop furiosa-npu REMOTE_JOB_ROOT \
+  --remote-python /root/miniconda3/bin/python3 \
+  --remote-pythonpath /root/hf_librarian_for_furiosa:/root/TPLMachine/improvement-20261108:/root/TPLMachine/current
+```
+
+원격 경로/인터프리터는 실제 환경에 맞추세요. 원격 작업 상태를 폴링하지 않고
+종료 이벤트를 기다립니다. SSH 연결이 끊겼을 때만 60초 후 재접속하며, 이때도
+LLM을 호출하지 않습니다. macOS 알림 센터로 한 번 전달하고 수신기를 종료합니다.
+알림 허용/집중 모드에 따라 화면 표시가 제한될 수 있습니다. Mac이 꺼져 있으면
+즉시 알림은 불가능하지만 서버 이벤트는 보존됩니다. Mac 수신기를 다시 실행하면
+종료된 작업의 이벤트도 받을 수 있습니다.
+
+수신/전송 기록은 기본 `~/.local/state/hf-librarian/notifications`에 보관합니다.
+`--state-root`로 변경할 수 있습니다. AppleScript 전송 실패도 이벤트 inbox와
+별도 오류 파일에 남습니다. 같은 state-root의 전송 완료 receipt가 있으면 재전송하지
+않습니다. 다른 사용자/외부 서비스로 메시지를 보내거나 이 Codex 채팅을 깨우지는 않습니다.
