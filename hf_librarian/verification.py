@@ -15,7 +15,7 @@ from pathlib import Path
 class Verifier:
     def __init__(self, librarian, results_dir=None):
         self.librarian = librarian
-        self.root = Path(results_dir or os.environ.get('HF_LIBRARIAN_RESULTS', Path.home()/'.local/share/hf-librarian/verification')).expanduser().resolve()
+        self.root = Path(results_dir or os.environ.get('HF_LIBRARIAN_RESULTS', Path.home()/'.cache/hf-librarian/verification')).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.db = self.root / 'history.sqlite3'
         with sqlite3.connect(self.db) as db:
