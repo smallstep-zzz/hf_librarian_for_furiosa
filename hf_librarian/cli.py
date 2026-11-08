@@ -7,6 +7,8 @@ def main():
     p = argparse.ArgumentParser(prog="hf-librarian")
     p.add_argument("--catalog")
     sub = p.add_subparsers(dest="command", required=True)
+    continuous=sub.add_parser('continuous',help='Pause after current wave, inspect receipt, or resume')
+    continuous.add_argument('action',choices=['pause','status','resume']);continuous.add_argument('plan')
     activity=sub.add_parser("activity",help="One-shot supervisor and active model stages");activity.add_argument("job")
     sub.add_parser("categories")
     ls = sub.add_parser("list"); ls.add_argument("--category")
@@ -28,7 +30,10 @@ def main():
     campaign.add_argument('--model');campaign.add_argument('--repair-action',choices=['begin','record','history'],default='history');campaign.add_argument('--record')
     args = p.parse_args(); c = Catalog(args.catalog)
     try:
-        if args.command=='activity':
+        if args.command=='continuous':
+            from .continuous_control import control
+            result=control(args.action,args.plan)
+        elif args.command=='activity':
             from .activity import snapshot
             result=snapshot(args.job)
         elif args.command=='campaign':

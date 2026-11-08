@@ -226,3 +226,23 @@ NPU 점유율만 높이는 무한 반복은 하지 않습니다. 디스크90%/�
 이전 작업 목록은 `catalog.before-owner-link-*.json`으로 보존했습니다. 관리자는
 목록을 추가/편집하지 않고, 담당자가 갱신한 목록을 다음 배치 계획에 반영합니다.
 각 실제 실험의 config/revision/hash는 별도 intake 기록에 고정합니다.
+
+### Finish the current continuous wave, then pause
+
+```bash
+hf-librarian continuous pause /path/to/plan.json
+hf-librarian continuous status /path/to/plan.json
+hf-librarian continuous resume /path/to/plan.json
+```
+
+`pause` writes `PAUSE_AFTER_WAVE.json`: it does not send a stop to the active
+campaign. The manager finishes the active wave and feedback, then exits with
+`pause-receipt.json` (completed wave, attempted-contract count, state path and
+resume command). This is a wave boundary, not each compiler subprocess boundary.
+`status` is a one-shot query, not a monitoring loop. `resume` refuses an active
+manager/unfinished wave, archives control markers and launches a detached
+supervisor using the same plan/state. Existing contract fingerprints and results
+are retained; changed rules can legitimately schedule new contracts. A manager
+started before this feature needs a boundary handoff/restart; editing its source
+does not update code already loaded in memory. Existing campaign `stop` retains
+its immediate/cooperative cancellation semantics.

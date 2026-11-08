@@ -46,7 +46,9 @@ def aggregate(plan,root,state):
         if result['receipt']['returncode']==0:
             result['registry']=register_compiler_prior(output/'models/compiler-estimate',plan['model_registry'],
                                                        result['result'].get('models',[]))
-        state['trained_keys']=identity;state['last_training']=result
+        if result['receipt']['returncode']==0:state['trained_keys']=identity
+        else:save(root/'review-training.json',{'status':'failed','identity':identity,'result_path':result.get('result_path'),'action':'inspect failed training before explicit retry'})
+        state['last_training']=result
         save(root/'state.json',state)
 
 
@@ -64,11 +66,13 @@ def run(plan_path):
                 return
             wait_for_input(root,plan['catalog'])
     with lease(root/'manager.lock'):
+        finished=root/'finished.json'
+        if finished.exists():finished.rename(root/('finished.previous-'+str(time.time_ns())+'.json'))
         threading.Thread(target=forward_stop,daemon=True).start()
         if state.get('active'):
             wait(Path(state['active'])/'job');state.pop('active');save(state_path,state)
         aggregate(plan,root,state)
-        while not (root/'STOP.json').exists():
+        while not (root/'STOP.json').exists() and not (root/'PAUSE_AFTER_WAVE.json').exists():
             disk=shutil.disk_usage(plan['data_root'])
             if disk.used/disk.total>=.90 or disk.free<2*1024**3:
                 save(root/'review-needed.json',{'reason':'storage reserve reached; no cache deletion'});break
@@ -83,7 +87,7 @@ def run(plan_path):
                 models=sorted(catalog.models(),key=lambda m:(m.get('difficulty','medium') not in ('easy','basic'),m.get('priority',100),m['id']))
                 for rows in row_families():
                     for model in models:
-                        if (root/'STOP.json').exists():break
+                        if (root/'STOP.json').exists() or (root/'PAUSE_AFTER_WAVE.json').exists():break
                         if model['id'] in catalog.blacklist() or model.get('quantization')=='gguf':continue
                         key=None
                         try:
@@ -98,6 +102,7 @@ def run(plan_path):
                         except Exception as exc:
                             save(root/'last-intake-error.json',{'model':model['id'],'error':str(exc)[:1000],'time':time.time()})
                     if chosen:break
+            if (root/'PAUSE_AFTER_WAVE.json').exists():break
             if not chosen:
                 save(root/'activity.json',{'phase':'waiting_for_new_catalog_or_rules','reason':'all admitted unique row contracts attempted; no redundant NPU loops','updated':time.time(),'wave':state['wave']})
                 wait_for_input(root,plan['catalog']);continue
@@ -113,7 +118,11 @@ def run(plan_path):
             if summary['counts'].get('failed') or summary['counts'].get('blocked'):
                 save(root/'review-latest.json',{'wave':state['wave'],'counts':summary['counts'],'root':str(wave)})
             aggregate(plan,root,state)
-        save(root/'finished.json',{'status':'stopped','time':time.time(),'waves':state['wave']})
+        paused=(root/'PAUSE_AFTER_WAVE.json').exists()
+        if paused:
+            from .continuous_control import checkpoint
+            checkpoint(root,plan_path)
+        save(root/'finished.json',{'status':'paused' if paused else 'stopped','time':time.time(),'waves':state['wave']})
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('plan');a=p.parse_args();run(a.plan)
