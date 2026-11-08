@@ -32,3 +32,11 @@ class Tests(unittest.TestCase):
    self.assertEqual(len(count),1)
    state=json.loads((__import__('pathlib').Path(root)/'state.json').read_text())
    self.assertEqual(state['cooldown_until'],1900)
+ def test_budget_prevents_21st_request(self):
+  with tempfile.TemporaryDirectory() as root:
+   now=[1000]; calls=[]; api=HubResearch(root,lambda:now[0])
+   for i in range(20):
+    api.call(lambda: calls.append(1))
+    now[0]+=6
+   with self.assertRaises(ResearchLimit): api.call(lambda: calls.append(1))
+   self.assertEqual(len(calls),20)
