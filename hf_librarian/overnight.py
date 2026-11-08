@@ -6,11 +6,12 @@ from pathlib import Path
 from huggingface_hub import HfApi,hf_hub_download
 from .catalog import Catalog
 from .campaign import start,save
+from .hub_research import HubResearch,ResearchLimit
 
 def run(plan_path,deadline):
     from tplmachine.research.jobs import wait
     plan=json.loads(Path(plan_path).read_text());root=Path(plan['root']+'-overnight');root.mkdir(exist_ok=True)
-    catalog=Catalog(plan['catalog']);seen=set(plan['models']);api=HfApi();round_id=0
+    catalog=Catalog(plan['catalog']);seen=set(plan['models']);api=HfApi();gate=HubResearch();round_id=0
     previous=plan.get('previous_root')
     if previous:
         import sqlite3
@@ -24,20 +25,24 @@ def run(plan_path,deadline):
         candidates=[]
         save(root/'activity.json',{'phase':'discovery','difficulty':difficulty,'deadline':deadline,'updated':time.time()})
         # Hub supplies ranking, not a coordinator-maintained model list.
-        for model in api.list_models(pipeline_tag='text-generation',sort='downloads',limit=300):
+        try:
+            discovered=gate.call(lambda: list(api.list_models(pipeline_tag='text-generation',sort='downloads',limit=30)))
+        except ResearchLimit as exc:
+            save(root/'review-needed.json',{'reason':'Hub research rate limit','error':str(exc)});return
+        for model in discovered:
             if time.time()>=end:break
             if model.id in seen or getattr(model,'gated',False):continue
             try:
                 save(root/'activity.json',{'phase':'model_metadata','model':model.id,'difficulty':difficulty,'selected':len(candidates),'deadline':deadline,'updated':time.time()})
                 existing=catalog.get(model.id)
-                info=api.model_info(model.id,revision=existing.get('revision','main') if existing else 'main',files_metadata=True)
+                info=gate.call(lambda: api.model_info(model.id,revision=existing.get('revision','main') if existing else 'main',files_metadata=True))
                 if getattr(info,'gated',False) or getattr(info,'private',False):continue
                 count=getattr(getattr(info,'safetensors',None),'total',None)
                 if not count or count>ceiling or (difficulty!='basic' and count<=ceiling/4):continue
                 if any(x in model.id.lower() for x in ('gguf','gptq','awq')):continue
                 # Pure configuration preflight; no weights, no NPU or LLM.
                 from tplmachine.research.improvement_model import contracts
-                config=Path(hf_hub_download(model.id,'config.json',revision=info.sha))
+                config=Path(gate.call(lambda: hf_hub_download(model.id,'config.json',revision=info.sha)))
                 if config.stat().st_size>1024**2:continue
                 tasks=contracts(json.loads(config.read_text()),model.id,[1])
                 if tasks[0]['parameter_upper_estimate']>ceiling:continue
@@ -46,6 +51,8 @@ def run(plan_path,deadline):
                     'source':'https://huggingface.co/'+model.id,'notes':'Hub downloads ranking; config projection research only'})
                 candidates.append(model.id);seen.add(model.id)
                 if len(candidates)>=30:break
+            except ResearchLimit as exc:
+                save(root/'review-needed.json',{'reason':'Hub research rate limit','error':str(exc)});return
             except Exception as exc:save(root/'discovery-error.json',{'model':model.id,'error':str(exc)[:500]})
         for offset in range(0,len(candidates),5):
             if time.time()>=end:break
