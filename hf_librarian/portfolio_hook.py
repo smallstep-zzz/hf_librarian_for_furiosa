@@ -17,5 +17,9 @@ def after_wave(plan,wave):
                 os.killpg(child.pid,signal.SIGKILL);child.wait();code=124
         results.append({'action':action,'returncode':code})
         if code:break
-    receipt={'wave':str(wave),'steps':results,'runtime_promotion':False,'time':time.time()}
+    summary=None
+    if (root/'last-drain.json').exists():
+        import json
+        last=json.loads((root/'last-drain.json').read_text());summary={'statuses':[x['status'] for x in last['results']],'receipt':str(root/'last-drain.json')}
+    receipt={'competition':summary,'wave':str(wave),'steps':results,'runtime_promotion':False,'time':time.time()}
     save(Path(wave)/'portfolio-receipt.json',receipt);return receipt
