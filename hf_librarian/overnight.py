@@ -29,7 +29,8 @@ def run(plan_path,deadline):
             if model.id in seen or getattr(model,'gated',False):continue
             try:
                 save(root/'activity.json',{'phase':'model_metadata','model':model.id,'difficulty':difficulty,'selected':len(candidates),'deadline':deadline,'updated':time.time()})
-                info=api.model_info(model.id,files_metadata=True)
+                existing=catalog.get(model.id)
+                info=api.model_info(model.id,revision=existing.get('revision','main') if existing else 'main',files_metadata=True)
                 if getattr(info,'gated',False) or getattr(info,'private',False):continue
                 count=getattr(getattr(info,'safetensors',None),'total',None)
                 if not count or count>ceiling or (difficulty!='basic' and count<=ceiling/4):continue
@@ -40,7 +41,7 @@ def run(plan_path,deadline):
                 if config.stat().st_size>1024**2:continue
                 tasks=contracts(json.loads(config.read_text()),model.id,[1])
                 if tasks[0]['parameter_upper_estimate']>ceiling:continue
-                catalog.add_model({'id':model.id,'categories':['language-generation'],'revision':info.sha,
+                if not existing:catalog.add_model({'id':model.id,'categories':['language-generation'],'revision':info.sha,
                     'priority':len(candidates),'difficulty':difficulty,'npu_status':'untested',
                     'source':'https://huggingface.co/'+model.id,'notes':'Hub downloads ranking; config projection research only'})
                 candidates.append(model.id);seen.add(model.id)
