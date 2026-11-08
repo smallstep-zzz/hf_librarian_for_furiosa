@@ -4,10 +4,10 @@ from unittest.mock import patch
 from hf_librarian.continuous import row_families,aggregate
 class ContinuousTests(unittest.TestCase):
  def test_rows_are_bounded_distinct_real_batch_prefill_gaps(self):
-  groups=row_families();self.assertEqual(len(groups),8)
+  groups=row_families();self.assertEqual(len(groups),12)
   self.assertTrue(all(1<=v<=4096 for rows in groups for v in rows))
   self.assertEqual(groups[0],[3,6,12,24,48,96,192,384,768])
-  self.assertEqual(len({tuple(r) for r in groups}),8)
+  self.assertEqual(len({tuple(r) for r in groups}),12)
  def test_aggregate_does_not_refit_unchanged_teacher_keys(self):
   from hf_librarian.campaign import fingerprint
   with tempfile.TemporaryDirectory() as temp:

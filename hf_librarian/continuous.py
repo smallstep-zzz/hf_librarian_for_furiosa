@@ -12,7 +12,7 @@ from .library import Librarian
 
 def row_families():
     # Fill realistic non-power-of-two batch/prefill gaps, then wait for new intake.
-    return [[min(4096,base*2**i) for i in range(9)] for base in (3,5,7,9,11,13,15,17)]
+    return [[min(4096,base*2**i) for i in range(9)] for base in (3,5,7,9,11,13,15,17,19,23,29,31)]
 
 
 def wait_for_input(root,catalog,timeout=300):
@@ -37,7 +37,12 @@ def aggregate(plan,root,state):
                     if any(c.get('operator','aten.mm.default')=='aten.mm.default' for c in x.get('contexts',[])))
     identity=fingerprint(sorted(keys))
     if not keys or identity==state.get('trained_keys'):return
-    output=root/'training'/identity
+    # Retry once when the trainer implementation changes, preserving failed receipts.
+    trainer=fingerprint({str(p):p.read_text() for p in
+        (Path(plan.get('tclmachine_source',''))/'tplmachine/improvement.py',
+         Path(plan.get('tclmachine_source',''))/'tplmachine/research/campaign_worker.py',
+         Path(plan.get('tclmachine_source',''))/'tplmachine/io.py') if p.is_file()})
+    output=root/'training'/(identity+'-'+trainer[:12])
     save(root/'training-indexes.json',paths)
     with lease(plan['feedback_lock']):
         if (output/'result.json').is_file():

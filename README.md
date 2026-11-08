@@ -257,3 +257,10 @@ retraining. This is feature-corpus collection, not full-model support certificat
 Pause at a wave boundary, change `tclmachine_source` to a tested snapshot, then
 `hf-librarian continuous resume PLAN.json`. Detached supervisors survive SSH loss;
 use status on demand and completion events instead of repeated agent monitoring.
+
+If continuous status reports `waiting_for_new_catalog_or_rules`, the manager has
+exhausted unique admitted contracts; this is not a crash. Check training receipts
+separately. Failed fitting preserves the previous registered model. A changed trainer
+fingerprint creates a new attempt directory, preserving old errors rather than
+permanently reusing a failed result. Large merged training indexes are sharded by
+TCLMachine while retaining the strict per-file JSON bound.
