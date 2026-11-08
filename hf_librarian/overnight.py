@@ -3,7 +3,7 @@ import argparse,json,time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi,hf_hub_download
 from .catalog import Catalog
 from .campaign import start,save
 
@@ -11,6 +11,12 @@ def run(plan_path,deadline):
     from tplmachine.research.jobs import wait
     plan=json.loads(Path(plan_path).read_text());root=Path(plan['root']+'-overnight');root.mkdir(exist_ok=True)
     catalog=Catalog(plan['catalog']);seen=set(plan['models']);api=HfApi();round_id=0
+    previous=plan.get('previous_root')
+    if previous:
+        import sqlite3
+        for db_path in Path(previous).glob('round-*/campaign.sqlite'):
+            with sqlite3.connect(db_path) as db:
+                seen.update(row[0] for row in db.execute("SELECT model FROM items WHERE state='completed'"))
     end=datetime.fromisoformat(deadline).replace(tzinfo=ZoneInfo('Asia/Seoul')).timestamp()
     save(root/'activity.json',{'phase':'starting','deadline':deadline,'updated':time.time()})
     for difficulty,ceiling in [('basic',2_000_000_000),('intermediate',8_000_000_000),('advanced',20_000_000_000)]:
@@ -24,9 +30,16 @@ def run(plan_path,deadline):
             try:
                 save(root/'activity.json',{'phase':'model_metadata','model':model.id,'difficulty':difficulty,'selected':len(candidates),'deadline':deadline,'updated':time.time()})
                 info=api.model_info(model.id,files_metadata=True)
+                if getattr(info,'gated',False) or getattr(info,'private',False):continue
                 count=getattr(getattr(info,'safetensors',None),'total',None)
                 if not count or count>ceiling or (difficulty!='basic' and count<=ceiling/4):continue
                 if any(x in model.id.lower() for x in ('gguf','gptq','awq')):continue
+                # Pure configuration preflight; no weights, no NPU or LLM.
+                from tplmachine.research.improvement_model import contracts
+                config=Path(hf_hub_download(model.id,'config.json',revision=info.sha))
+                if config.stat().st_size>1024**2:continue
+                tasks=contracts(json.loads(config.read_text()),model.id,[1])
+                if tasks[0]['parameter_upper_estimate']>ceiling:continue
                 catalog.add_model({'id':model.id,'categories':['language-generation'],'revision':info.sha,
                     'priority':len(candidates),'difficulty':difficulty,'npu_status':'untested',
                     'source':'https://huggingface.co/'+model.id,'notes':'Hub downloads ranking; config projection research only'})
