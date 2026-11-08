@@ -17,3 +17,18 @@ class Tests(unittest.TestCase):
    t[0]+=6
    with self.assertRaises(ResearchLimit):api.model('org/another')
    self.assertEqual(len(calls),2)
+ def test_sdk_429_stops_later_calls(self):
+  from types import SimpleNamespace
+  with tempfile.TemporaryDirectory() as root:
+   count=[]
+   class HubFailure(Exception):
+    response=SimpleNamespace(status_code=429,headers={'Retry-After':'900'})
+   def fail():
+    count.append(1)
+    raise HubFailure()
+   api=HubResearch(root,lambda:1000)
+   with self.assertRaises(ResearchLimit): api.call(fail)
+   with self.assertRaises(ResearchLimit): api.call(fail)
+   self.assertEqual(len(count),1)
+   state=json.loads((__import__('pathlib').Path(root)/'state.json').read_text())
+   self.assertEqual(state['cooldown_until'],1900)
