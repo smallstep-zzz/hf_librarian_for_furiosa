@@ -19,7 +19,7 @@ def wait_for_input(root,catalog,timeout=300):
     libc=ctypes.CDLL(None,use_errno=True);fd=libc.inotify_init1(os.O_CLOEXEC)
     if fd<0:raise OSError('inotify unavailable')
     try:
-        for directory in (Path(root),Path(catalog).parent):
+        for directory in (Path(root),Path(catalog).resolve().parent):
             if libc.inotify_add_watch(fd,os.fsencode(directory),0x100|0x80|0x8)<0:raise OSError('watch failed')
         import select
         if select.select([fd],[],[],timeout)[0]:os.read(fd,65536)

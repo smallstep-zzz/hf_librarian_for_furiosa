@@ -220,3 +220,9 @@ touch /root/TPLMachine/reports/continuous-improvement-20261108/STOP.json
 고유 계약을 처리하면 새 카탈로그/규칙 입력을 기다립니다. 유용한 작업 없이
 NPU 점유율만 높이는 무한 반복은 하지 않습니다. 디스크90%/여유 공간 및 기존
 작업자 메모리·데이터 상한을 유지하며 SDK 업그레이드/재부팅은 수행하지 않습니다.
+
+현재 서버의 작업용 카탈로그 경로는 기본 소유 카탈로그
+`/root/hf_librarian_for_furiosa/hf_librarian/catalog.json`에 연결되어 있습니다.
+이전 작업 목록은 `catalog.before-owner-link-*.json`으로 보존했습니다. 관리자는
+목록을 추가/편집하지 않고, 담당자가 갱신한 목록을 다음 배치 계획에 반영합니다.
+각 실제 실험의 config/revision/hash는 별도 intake 기록에 고정합니다.
