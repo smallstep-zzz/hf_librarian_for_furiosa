@@ -126,6 +126,9 @@ def run(plan_path):
             if summary['counts'].get('failed') or summary['counts'].get('blocked'):
                 save(root/'review-latest.json',{'wave':state['wave'],'counts':summary['counts'],'root':str(wave)})
             aggregate(plan,root,state)
+            if plan.get('portfolio_root'):
+                from .portfolio_hook import after_wave
+                after_wave(plan,wave)
         paused=(root/'PAUSE_AFTER_WAVE.json').exists()
         if paused:
             from .continuous_control import checkpoint
