@@ -35,7 +35,7 @@ class ContinuousControl(unittest.TestCase):
  def test_failed_training_does_not_claim_trained_keys(self):
   from hf_librarian.continuous import aggregate
   with tempfile.TemporaryDirectory() as d:
-   root=Path(d);save(root/'waves/1/cpu/collection/sample_index.json',[{'key':'new'}])
+   root=Path(d);save(root/'waves/1/cpu/collection/sample_index.json',[{'key':'new','contexts':[{'operator':'aten.mm.default'}]}])
    state={'trained_keys':'previous'}
    plan={'history_roots':[],'feedback_lock':str(root/'feedback.lock'),'data_root':str(root/'data')}
    failure={'receipt':{'returncode':1},'result':{'status':'failed'}}
@@ -51,5 +51,13 @@ class ContinuousControl(unittest.TestCase):
    self.assertEqual(launch.call_args.args[1][0],sys.executable)
    self.assertEqual(json.loads((root/'state.json').read_text())['wave'],3)
    self.assertFalse((root/'PAUSE_AFTER_WAVE.json').exists())
+
+ def test_new_region_labels_do_not_refit_matrix_prior(self):
+  from hf_librarian.continuous import aggregate
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);save(root/'waves/1/cpu/collection/sample_index.json',[{'key':'pair','contexts':[{'operator':'region.gated_mlp_pair'}]}])
+   state={'trained_keys':'previous'}
+   with patch('hf_librarian.continuous.command') as command:aggregate({'history_roots':[]},root,state)
+   command.assert_not_called();self.assertEqual(state['trained_keys'],'previous')
 
 if __name__=='__main__':unittest.main()

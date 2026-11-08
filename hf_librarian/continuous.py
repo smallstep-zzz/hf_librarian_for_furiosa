@@ -33,7 +33,8 @@ def aggregate(plan,root,state):
                   if p.parent.name=='collection'})
     keys=set()
     for path in paths:
-        keys.update(x['key'] for x in json.loads(Path(path).read_text()))
+        keys.update(x['key'] for x in json.loads(Path(path).read_text())
+                    if any(c.get('operator','aten.mm.default')=='aten.mm.default' for c in x.get('contexts',[])))
     identity=fingerprint(sorted(keys))
     if not keys or identity==state.get('trained_keys'):return
     output=root/'training'/identity
@@ -79,7 +80,9 @@ def run(plan_path):
             catalog=Catalog(plan['catalog']);rules=fingerprint({str(p):p.read_text() for p in
                 (Path(plan['tclmachine_source'])/'tplmachine/research/improvement_model.py',
                  Path(plan['tclmachine_source'])/'tplmachine/aten_kernels.py',
-                 Path(plan['tclmachine_source'])/'tplmachine/research/campaign_worker.py')})
+                 Path(plan['tclmachine_source'])/'tplmachine/research/campaign_worker.py',
+                 Path(plan['tclmachine_source'])/'tplmachine/mlp_kernels.py',
+                 Path(plan['tclmachine_source'])/'tplmachine/mlp_regions.py') if p.exists()})
             chosen=[];keys=[];chosen_rows=None
             save(root/'activity.json',{'phase':'queue_planning','updated':time.time(),'wave':state['wave']})
             with Librarian(catalog,max_concurrent=2) as lib:

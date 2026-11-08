@@ -246,3 +246,14 @@ are retained; changed rules can legitimately schedule new contracts. A manager
 started before this feature needs a boundary handoff/restart; editing its source
 does not update code already loaded in memory. Existing campaign `stop` retains
 its immediate/cooperative cancellation semantics.
+
+### TCLMachine 0.4 region data
+
+The continuous controller fingerprints the optional MLP region rules and preserves
+existing receipts and mm cost-cache identities. Explicit SiLU configurations also
+produce synthetic closed-region cost examples. These labels remain separate from
+the single-mm compiler-cycle surrogate; region-only additions do not trigger matrix
+retraining. This is feature-corpus collection, not full-model support certification.
+Pause at a wave boundary, change `tclmachine_source` to a tested snapshot, then
+`hf-librarian continuous resume PLAN.json`. Detached supervisors survive SSH loss;
+use status on demand and completion events instead of repeated agent monitoring.
