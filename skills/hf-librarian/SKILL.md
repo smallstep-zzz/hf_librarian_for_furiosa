@@ -67,3 +67,13 @@ native notification, retaining inbox/delivery receipts and retrying SSH only on
 connection failure. Keep notifications separate from the workload; loss of Mac
 connectivity must not cancel it. Native notification acceptance is not proof the
 user saw the banner. Do not promise a closed Codex chat wakes automatically.
+
+For continued useful work after a model acceptance, use the continuous manager
+with the existing catalog, not another hand-maintained model list. It queues new
+row contracts, serializes NPU/feedback access, deduplicates attempts by shape/rule
+version, and refits on combined official teacher rows only when keys change.
+Leave prepared catalog discovery to its owner. Keep the detached manager running
+and return after one readiness/activity check. `activity JOB_ROOT` reports its
+current wave; STOP.json propagates to active workers. Watch for disk/memory gates.
+No auto-repair/LLM is hidden in this service. An exhausted queue waits for new
+catalog/rule input; it does not churn old tests to keep utilization high.

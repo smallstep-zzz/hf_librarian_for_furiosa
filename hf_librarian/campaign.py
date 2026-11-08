@@ -133,8 +133,10 @@ def command(plan,argv,output,*,fd=None):
 def cpu_task(plan,model,snapshot):
     output=Path(plan['root'])/'models'/fingerprint(model)[:16]/'cpu'
     before=time.monotonic()
-    result=command(plan,['collect','--config',str(Path(snapshot)/'config.json'),'--model',model,
-        '--data-root',plan['data_root'],'--output',str(output),'--workers',str(plan.get('compile_workers',4))],output)
+    argv=['collect','--config',str(Path(snapshot)/'config.json'),'--model',model,
+        '--data-root',plan['data_root'],'--output',str(output),'--workers',str(plan.get('compile_workers',4))]
+    if plan.get('row_buckets'):argv+=['--rows',*[str(v) for v in plan['row_buckets']]]
+    result=command(plan,argv,output)
     return dict(result,cpu_s=time.monotonic()-before,snapshot=snapshot,
                 revision=Path(snapshot).name,config_sha256=hashlib.sha256((Path(snapshot)/'config.json').read_bytes()).hexdigest())
 

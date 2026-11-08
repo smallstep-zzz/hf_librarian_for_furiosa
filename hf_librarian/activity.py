@@ -17,7 +17,10 @@ def snapshot(job):
     argv=request['command']
     try:
         plan=read(Path(argv[argv.index('hf_librarian.overnight')+1]));root=Path(plan['root']+'-overnight')
-    except (ValueError,IndexError,TypeError):root=job.parent
+    except (ValueError,IndexError,TypeError):
+        try:
+            plan=read(Path(argv[argv.index('hf_librarian.continuous')+1]));root=Path(plan['service_root'])
+        except (ValueError,IndexError,TypeError):root=job.parent
     activity=read(root/'activity.json') or {};result.update(activity)
     if activity.get('updated'):result['last_activity_age_s']=round(time.time()-activity['updated'])
     review=read(root/'review-needed.json');finished=read(root/'finished.json')
