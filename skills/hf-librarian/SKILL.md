@@ -5,6 +5,40 @@ description: Research, classify, and maintain Hugging Face test models for Furio
 
 # Hugging Face model librarian
 
+For one known error or a small rule edit, FHA should call TCLMachine directly.
+Use this librarian for model/category preparation and unattended multi-model
+improvement campaigns. It is not a mandatory hop for every test.
+
+`get --profile config` pins and downloads only config.json for typed projection
+collection; it does not load model weights or execute remote model code. The
+default `weights` profile preserves existing download behaviour.
+
+Start `hf-librarian campaign start PLAN.json` using the plan format in README.
+Return after supervisor readiness. Do not keep FHA/LLM watching or polling it.
+The host continues after SSH disconnect. Only when asked about progress/completion,
+query `campaign status ROOT` once on that host: it checks actual process identity
+and reports arithmetic ETA with a range. Network failure means connectivity
+unknown; missing process/receipt is a process incident, not a model failure.
+`campaign stop ROOT` writes a server stop signal.
+
+CPU collections run in separate SDK processes, starting at2, then3 after2
+successes and5 after5, subject to effective-memory admission. NPU execution uses
+one shared canonical FXBEX lease across campaigns; feedback/training commits use
+a different shared lease. Queue/lease waits never enter performance labels.
+These initialized projection audits do not prove whole-model support or speed.
+
+Review `campaign history ROOT` for model/revision/coverage/objective scores, and
+`campaign issues ROOT` for counts/top groups. Request one `--group ID --detail repro`
+or `evidence` only when needed. Reusable generation/routing/runtime defects belong
+to FHA's shared-component maintainer, not repeated per-model TCL generation.
+Automatic baseline retention is not a manual repair case. Repair history retains
+why/change/actual validation and permits at most3 attempts; aggregate unresolved
+groups into one user decision. No automatic paid LLM call is made by the manager.
+
+Cost policy: official Furiosa estimates first; on failure, a compatible validated
+TCLMachine predictor may return a tagged fallback. Predictions are not real NPU
+latency or training truth. Without a compatible prior return unknown.
+
 Use the installed `hf-librarian` command. Do not edit catalog JSON directly. `hf-librarian categories`, `list --category CATEGORY`, `settings`, `status`, and `blacklist` show current state. Model IDs are exact Hugging Face IDs.
 
 When asked to research models, check the current Hugging Face model card and file list. Choose varied architectures and a representative range of size, quantization, novelty, rare operations, and paper implementations. Record the source URL and reason for selection. Verify the license and gated status before recommending use. The catalog records candidates, not proven NPU support; set `npu_status` to `untested` until a real compiler/runtime test proves otherwise. Estimated file size is not runtime memory. Check selected files, loader requirements, and Hub sizes; do not select multiple redundant weight formats without reason.

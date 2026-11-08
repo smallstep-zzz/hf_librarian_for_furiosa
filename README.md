@@ -2,6 +2,71 @@
 
 Hugging Face 모델 후보를 분류하고 표준 Hub 캐시에 준비하는 경량 라이브러리입니다. 모델 선정은 컴파일러 테스트의 다양성을 위한 것이며 NPU/EDF 호환성 보증이 아닙니다.
 
+## TCLMachine 성능 향상 캠페인
+
+단일 오류 재현·작은 수정은 TCLMachine을 직접 사용하세요. 여러 모델/카테고리의
+준비·수집·평가·훈련은 이 관리자가 기계적으로 처리합니다. 모델 가중치를
+미세조정하는 기능이 아닙니다. 다음은 SDK가 이미 설치된 Linux 서버용 계획 예시입니다.
+경로와 카탈로그의 모델 ID를 실제 환경에 맞게 지정하세요.
+
+```json
+{
+  "root": "/root/TPLMachine/reports/campaign-NEW",
+  "catalog": "/root/catalog.json",
+  "models": ["Qwen/Qwen3-0.6B", "HuggingFaceTB/SmolLM2-135M-Instruct"],
+  "sdk_python": "/path/to/sdk/bin/python",
+  "tclmachine_source": "/root/TCLMachine",
+  "pythonpath": ["/path/to/compatible/fxbex/source"],
+  "data_root": "/root/.cache/TCLMachine/improvement",
+  "npu_lock": "/root/.cache/fxbex/npu.lock",
+  "feedback_lock": "/root/.cache/TCLMachine/feedback.lock",
+  "model_registry": "/root/.local/share/tclmachine/compiler-priors",
+  "max_parallel": 5,
+  "compile_workers": 4,
+  "worker_gib": 6,
+  "npu": true
+}
+```
+
+`models` 대신 `categories`와 `model_limit`를 주면 기존 캠페인 이력상 덜 다룬
+모델을 우선 선택합니다. 카탈로그 등록/차단·라이선스 확인은 여전히 필요합니다.
+`npu_lock`은 예시 경로를 그대로 고정하지 말고 같은 SDK 환경의
+`fxbex.settings.lock_path()` 반환값을 사용하세요. 기존 설정과 다르면 시작을 거부합니다.
+현재 검증 서버의 설정은 `/root/rngd-model-forge/reports/rngd_porting/npu.lock`입니다.
+
+```bash
+hf-librarian campaign start plan.json
+# 시작 준비가 확인되면 반환합니다. 서버는 SSH가 끊겨도 계속 작업합니다.
+# 아래는 사용자가 물었을 때만 한 번 실행하는 명령입니다.
+hf-librarian campaign status /root/TPLMachine/reports/campaign-NEW
+hf-librarian campaign history /root/TPLMachine/reports/campaign-NEW
+hf-librarian campaign issues /root/TPLMachine/reports/campaign-NEW
+hf-librarian campaign issues /root/TPLMachine/reports/campaign-NEW --group ID --detail repro
+hf-librarian campaign stop /root/TPLMachine/reports/campaign-NEW
+```
+
+FHA/LLM의 상시 감시·반복 폴링은 없습니다. 상태 조회는 실제 프로세스 신원을
+한 번 확인하고 완료된 모델의 단계 평균×잔여 개수로 ETA와 범위를 계산합니다.
+연결 실패와 서버 프로세스 실패는 구분합니다. 원본 데이터는 보존하며 자동 삭제하지 않습니다.
+
+준비는 config.json만 고정 revision으로 받아옵니다(`get --profile config`도 가능).
+CPU는 별도 SDK 프로세스2개부터 시작해 성공2회 후3개, 성공5회 후5개까지
+유효 메모리 여유에 따라 늘어납니다. NPU는 기존 FXBEX와 같은 전역 파일 잠금으로
+한 번에 하나만 실행합니다. 피드백·훈련·등록도 별도 잠금으로 직렬화합니다.
+대기 시간은 실행 시간과 분리됩니다. CPU 병행 중의 NPU 확인은 정확성/trace
+검증이며 성능 훈련 정답을 만들지 않습니다. 본격적인 실제 지연 측정은 격리 실행해야 합니다.
+
+모델별 revision/config 해시·검사 범위·단계 결과와 병합 훈련의 객관 점수를
+보존합니다. 공식 추정값은 먼저 그대로 사용하고, 실패하면 검증된 호환 예측기로
+대체합니다. 값의 출처를 표시하며 예측값을 훈련 정답으로 재사용하지 않습니다.
+좋은 비용 예측기의 등록은 실행 커널이나 배포 판단의 자동 승인을 뜻하지 않습니다.
+
+문제는 중복 집계 후 상위5개만 반환하고, 재현/증거는 요청할 때만 제공합니다.
+`campaign repair ROOT --group ID --repair-action begin|record|history --record RECORD.json`
+은 가설·변경·실제 검증을 최대3회 기록합니다. 이후에는 관련 문제들을 모아 사용자에게
+진행 방식을 묻습니다. 이 관리자가 유료 LLM을 호출하거나 커널을 임의 수정하지는 않습니다.
+공유 규칙·런타임 결함은 FHA가 필요한 한 부분만 읽고 TCLMachine을 직접 수정/검증합니다.
+
 ## 설치
 
 ```bash

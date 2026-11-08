@@ -2,3 +2,10 @@ __pycache__/
 *.pyc
 *.egg-info/
 .venv/
+reports/
+data/
+*.sqlite*
+*.edf
+*.ubj
+*.fxb
+*.fxbex

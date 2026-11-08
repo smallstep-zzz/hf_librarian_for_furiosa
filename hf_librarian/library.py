@@ -48,20 +48,62 @@ class Librarian:
         models = [m for m in self.catalog.models(category) if m["id"] not in self.catalog.blacklist()]
         if not models: raise LookupError(f"No eligible model in category {category}")
         return sorted(models, key=lambda m: (m.get("priority", 100), m["id"]))[0]["id"]
-    def request(self, model_id=None, category=None):
-        return self.request_async(model_id, category).result()
-    def request_async(self, model_id=None, category=None):
+    def request(self, model_id=None, category=None, profile="weights"):
+        return self.request_async(model_id, category, profile=profile).result()
+    def request_async(self, model_id=None, category=None, profile="weights"):
+        if profile not in ("weights","config"): raise ValueError("profile must be weights or config")
         if (model_id is None) == (category is None): raise ValueError("Specify exactly one of model_id or category")
         model_id = model_id or self.select(category)
         if model_id in self.catalog.blacklist(): raise PermissionError(f"Blacklisted: {model_id}")
         model = self.catalog.get(model_id)
         if not model: raise LookupError(f"Model not in catalog: {model_id}")
         with self._guard:
-            future = self._inflight.get(model_id)
+            key=(model_id,profile)
+            future = self._inflight.get(key)
             if future is None or future.done():
-                future = self.pool.submit(self._download, model)
-                self._inflight[model_id] = future
+                future = self.pool.submit(self._config if profile=="config" else self._download, model)
+                self._inflight[key] = future
             return future
+
+    def _config(self, model):
+        key=hashlib.sha256(json.dumps([model['id'],model.get('revision','main'),'config-v1']).encode()).hexdigest()
+        directory=self.cache/'.hf-librarian';directory.mkdir(exist_ok=True)
+        import fcntl
+        with (directory/(key+'.lock')).open('a') as lock:
+            fcntl.flock(lock,fcntl.LOCK_EX)
+            try:return self._config_locked(model)
+            except Exception as exc:
+                self.emit('failed',model['id'],profile='config',error=str(exc));raise
+
+    def _config_locked(self, model):
+        """Metadata-only consumers must not download unused checkpoints."""
+        from huggingface_hub import hf_hub_download
+        model_id=model['id'];revision=model.get('revision','main')
+        key=hashlib.sha256(json.dumps([model_id,revision,'config-v1']).encode()).hexdigest()
+        marker=self.cache/'.hf-librarian'/(key+'.json')
+        if marker.exists():
+            try:
+                state=json.loads(marker.read_text());path=Path(state['path'])
+                if (path.resolve().is_relative_to(self.cache) and (path/'config.json').is_file()
+                    and (path/'config.json').stat().st_size<=1024**2
+                    and hashlib.sha256((path/'config.json').read_bytes()).hexdigest()==state['config_sha256']):
+                    self.emit('available',model_id,path=str(path),profile='config');return str(path)
+            except (OSError,ValueError,KeyError,TypeError):pass
+        self.emit('missing',model_id,profile='config')
+        info=HfApi().model_info(model_id,revision=revision,files_metadata=True)
+        count=getattr(getattr(info,'safetensors',None),'total',None)
+        if count and count>20_000_000_000:raise ValueError('20B model ceiling exceeded')
+        entry=next((s for s in info.siblings if s.rfilename=='config.json'),None)
+        if entry is None or entry.size is None or entry.size>1024**2:raise ValueError('bounded config.json unavailable')
+        disk=shutil.disk_usage(self.cache)
+        if disk.used/disk.total>=.9 or disk.free<self.settings['min_free_gib']*GIB:raise RuntimeError('disk reserve gate')
+        self.emit('downloading',model_id,profile='config',bytes=entry.size)
+        config=Path(hf_hub_download(model_id,'config.json',revision=info.sha,cache_dir=str(self.cache)))
+        state={'model_id':model_id,'commit':info.sha,'path':str(config.parent),'profile':'config',
+               'config_sha256':hashlib.sha256(config.read_bytes()).hexdigest(),'parameter_count':count,
+               'license':getattr(info,'card_data',{}).get('license') if getattr(info,'card_data',None) else None}
+        marker.parent.mkdir(exist_ok=True);temp=marker.with_suffix('.tmp');temp.write_text(json.dumps(state));os.replace(temp,marker)
+        self.emit('completed',model_id,path=str(config.parent),profile='config');return str(config.parent)
     def _download(self, model):
         model_id = model["id"]
         try:
