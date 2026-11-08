@@ -22,7 +22,7 @@ def run(plan_path,deadline):
     save(root/'activity.json',{'phase':'starting','deadline':deadline,'updated':time.time()})
     for difficulty,ceiling in [('basic',2_000_000_000),('intermediate',8_000_000_000),('advanced',20_000_000_000)]:
         if time.time()>=end:break
-        candidates=[]
+        candidates=[]; rate_limited=False
         save(root/'activity.json',{'phase':'discovery','difficulty':difficulty,'deadline':deadline,'updated':time.time()})
         # Hub supplies ranking, not a coordinator-maintained model list.
         try:
@@ -52,7 +52,7 @@ def run(plan_path,deadline):
                 candidates.append(model.id);seen.add(model.id)
                 if len(candidates)>=30:break
             except ResearchLimit as exc:
-                save(root/'review-needed.json',{'reason':'Hub research rate limit','error':str(exc)});return
+                save(root/'review-needed.json',{'reason':'Hub research rate limit','error':str(exc)});rate_limited=True;break
             except Exception as exc:save(root/'discovery-error.json',{'model':model.id,'error':str(exc)[:500]})
         for offset in range(0,len(candidates),5):
             if time.time()>=end:break
@@ -65,6 +65,7 @@ def run(plan_path,deadline):
             if summary['counts'].get('failed',0)>len(batch['models'])/2:
                 save(root/'review-needed.json',{'round':round_id,'reason':'majority failure; harder tier withheld','root':batch['root']})
                 return
+        if rate_limited:return
     save(root/'finished.json',{'rounds':round_id,'finished':time.time(),'deadline':deadline})
 
 def main():
