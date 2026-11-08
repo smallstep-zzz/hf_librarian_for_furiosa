@@ -52,3 +52,9 @@ Add a category with `hf-librarian add-category NAME DESCRIPTION`. Add a model wi
 `hf-librarian remove-model ID`, `block ID --reason REASON`, and `unblock ID` manage membership and exclusions. Removing or blocking does not delete cached files. `hf-librarian get --id ID` downloads a known model and prints its snapshot path; `get --category NAME` selects the highest-priority eligible model. `prefetch --category NAME --category NAME` downloads in parallel. Follow an explicit request to prefetch an announced future test model after adding it. Do not fill the cache merely to reach its limit. Respect the configured limit, free-space reserve, gated model access, and blacklist; report failures accurately. Use Python API examples in the project README for integration.
 
 For build coverage use `hf-librarian verify --id ORG/MODEL --backend fxb` and `history --id ORG/MODEL`. Default verification requires the latest PyPI version to match the installed executable; for a specific installed release provide both `--version` and, if needed, `--executable`. FXBEX is a separate packaging step, not a compiler: `--backend fxbex --source COMPILED_DIR` requires a producer-prepared manifest whose provenance matches the model and revision. Report blocked, failed, timeout, and passed separately, with exact versions, inputs, and logs. An artifact alone does not prove model execution on the NPU.
+
+For “server looks quiet / what is running”, use `hf-librarian activity JOB_ROOT`
+once. It distinguishes actual supervisor death from model metadata preparation,
+CPU preparation, NPU queue/execution, completion and review-required stop. A launch
+readiness receipt alone is not proof the controller stayed alive. Use its bounded
+error excerpt before restarting. Do not claim full-night progress from startup.

@@ -7,6 +7,7 @@ def main():
     p = argparse.ArgumentParser(prog="hf-librarian")
     p.add_argument("--catalog")
     sub = p.add_subparsers(dest="command", required=True)
+    activity=sub.add_parser("activity",help="One-shot supervisor and active model stages");activity.add_argument("job")
     sub.add_parser("categories")
     ls = sub.add_parser("list"); ls.add_argument("--category")
     sub.add_parser("settings"); sub.add_parser("status"); sub.add_parser("version"); sub.add_parser("blacklist")
@@ -27,7 +28,10 @@ def main():
     campaign.add_argument('--model');campaign.add_argument('--repair-action',choices=['begin','record','history'],default='history');campaign.add_argument('--record')
     args = p.parse_args(); c = Catalog(args.catalog)
     try:
-        if args.command=='campaign':
+        if args.command=='activity':
+            from .activity import snapshot
+            result=snapshot(args.job)
+        elif args.command=='campaign':
             from . import campaign as controller
             from pathlib import Path
             if args.action=='start':result=controller.start(json.loads(Path(args.root).read_text()))

@@ -12,14 +12,17 @@ def run(plan_path,deadline):
     plan=json.loads(Path(plan_path).read_text());root=Path(plan['root']+'-overnight');root.mkdir(exist_ok=True)
     catalog=Catalog(plan['catalog']);seen=set(plan['models']);api=HfApi();round_id=0
     end=datetime.fromisoformat(deadline).replace(tzinfo=ZoneInfo('Asia/Seoul')).timestamp()
+    save(root/'activity.json',{'phase':'starting','deadline':deadline,'updated':time.time()})
     for difficulty,ceiling in [('basic',2_000_000_000),('intermediate',8_000_000_000),('advanced',20_000_000_000)]:
         if time.time()>=end:break
         candidates=[]
+        save(root/'activity.json',{'phase':'discovery','difficulty':difficulty,'deadline':deadline,'updated':time.time()})
         # Hub supplies ranking, not a coordinator-maintained model list.
-        for model in api.list_models(pipeline_tag='text-generation',sort='downloads',direction=-1,limit=300):
+        for model in api.list_models(pipeline_tag='text-generation',sort='downloads',limit=300):
             if time.time()>=end:break
             if model.id in seen or getattr(model,'gated',False):continue
             try:
+                save(root/'activity.json',{'phase':'model_metadata','model':model.id,'difficulty':difficulty,'selected':len(candidates),'deadline':deadline,'updated':time.time()})
                 info=api.model_info(model.id,files_metadata=True)
                 count=getattr(getattr(info,'safetensors',None),'total',None)
                 if not count or count>ceiling or (difficulty!='basic' and count<=ceiling/4):continue
@@ -33,6 +36,7 @@ def run(plan_path,deadline):
         for offset in range(0,len(candidates),5):
             if time.time()>=end:break
             round_id+=1;batch=dict(plan,root=str(root/f'round-{round_id}'),models=candidates[offset:offset+5],task_timeout_s=min(1800,max(1,int(end-time.time()))))
+            save(root/'activity.json',{'phase':'campaign','campaign_root':batch['root'],'models':batch['models'],'difficulty':difficulty,'round':round_id,'deadline':deadline,'updated':time.time()})
             start(batch);wait(Path(batch['root'])/'job')
             summary=json.loads((Path(batch['root'])/'summary.json').read_text())
             save(root/'progress.json',{'difficulty':difficulty,'round':round_id,'summary':summary,'deadline':deadline})

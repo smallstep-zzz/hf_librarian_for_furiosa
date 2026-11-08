@@ -144,3 +144,14 @@ with Librarian() as lib:
     print(result['status'], result['actual_version'], result.get('compiler_version'))
     print(verifier.history('Qwen/Qwen3-0.6B'))
 ```
+
+### 지금 무엇을 하는지 한 번에 확인
+
+```bash
+hf-librarian activity /root/TPLMachine/reports/librarian-overnight-20261108-job-v2
+```
+
+감독 프로세스 실제 생존 여부, 현재 단계/모델, 후보 선정 난이도와 개수,
+배치별 완료·실패 수, CPU/RAM 대기·NPU 큐/실행 상태, ETA, 마지막 활동 경과,
+실패 시 짧은 오류와 다음 조치를 JSON으로 반환합니다. 현재 단계만 알 수 있는
+경우 세부 연산을 추측하지 않습니다. 이 명령은 작업을 재시작하거나 감시하지 않습니다.
