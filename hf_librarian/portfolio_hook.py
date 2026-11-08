@@ -4,9 +4,12 @@ from pathlib import Path
 from .campaign import environment,save
 
 
-def after_wave(plan,wave):
+def after_wave(plan,wave,discover=True):
+    if plan.get('service_root') and (Path(plan['service_root'])/'PAUSE_AFTER_WAVE.json').exists():
+        return {'status':'skipped_for_pause','runtime_promotion':False}
     root=Path(plan['portfolio_root']);root.mkdir(parents=True,exist_ok=True);results=[]
-    for action,extra in [('discover',['--wave',str(wave)]),('drain',['--limit',str(plan.get('portfolio_jobs_per_wave',1))])]:
+    actions=([('discover',['--wave',str(wave)])] if discover else [])+[('drain',['--limit',str(plan.get('portfolio_jobs_per_wave',1))])]
+    for action,extra in actions:
         command=[plan['sdk_python'],'-m','tplmachine.research.portfolio',action,'--root',str(root),*extra]
         with (Path(wave)/('portfolio-'+action+'.log')).open('a') as log:
             child=subprocess.Popen(command,env=environment(plan),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)

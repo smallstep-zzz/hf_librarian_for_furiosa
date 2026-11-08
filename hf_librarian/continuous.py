@@ -10,6 +10,21 @@ from .catalog import Catalog
 from .library import Librarian
 
 
+def corpus_rules(source,state):
+    """Separate corpus generation changes from portfolio implementation changes."""
+    import ast
+    base=Path(source)/'tplmachine';worker=base/'research/campaign_worker.py'
+    text=worker.read_text();collect=next(n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef) and n.name=='collect_phase')
+    inputs=fingerprint({'generator':(base/'research/improvement_model.py').read_text(),
+                        'mm':(base/'aten_kernels.py').read_text(),'collect':ast.get_source_segment(text,collect)})
+    if 'corpus_rules_baseline' not in state:
+        legacy=fingerprint({str(p):p.read_text() for p in
+            (base/'research/improvement_model.py',base/'aten_kernels.py',worker,base/'mlp_kernels.py',base/'mlp_regions.py') if p.exists()})
+        state['corpus_rules_baseline']={'inputs':inputs,'legacy_signature':legacy}
+    baseline=state['corpus_rules_baseline']
+    return baseline['legacy_signature'] if inputs==baseline['inputs'] else inputs
+
+
 def row_families():
     # Fill realistic non-power-of-two batch/prefill gaps, then wait for new intake.
     return [[min(4096,base*2**i) for i in range(9)] for base in (3,5,7,9,11,13,15,17,19,23,29,31)]
@@ -82,12 +97,7 @@ def run(plan_path):
             disk=shutil.disk_usage(plan['data_root'])
             if disk.used/disk.total>=.90 or disk.free<2*1024**3:
                 save(root/'review-needed.json',{'reason':'storage reserve reached; no cache deletion'});break
-            catalog=Catalog(plan['catalog']);rules=fingerprint({str(p):p.read_text() for p in
-                (Path(plan['tclmachine_source'])/'tplmachine/research/improvement_model.py',
-                 Path(plan['tclmachine_source'])/'tplmachine/aten_kernels.py',
-                 Path(plan['tclmachine_source'])/'tplmachine/research/campaign_worker.py',
-                 Path(plan['tclmachine_source'])/'tplmachine/mlp_kernels.py',
-                 Path(plan['tclmachine_source'])/'tplmachine/mlp_regions.py') if p.exists()})
+            catalog=Catalog(plan['catalog']);rules=corpus_rules(plan['tclmachine_source'],state)
             chosen=[];keys=[];chosen_rows=None
             save(root/'activity.json',{'phase':'queue_planning','updated':time.time(),'wave':state['wave']})
             with Librarian(catalog,max_concurrent=2) as lib:
@@ -112,6 +122,9 @@ def run(plan_path):
                     if chosen:break
             if (root/'PAUSE_AFTER_WAVE.json').exists():break
             if not chosen:
+                if plan.get('portfolio_root'):
+                    from .portfolio_hook import after_wave
+                    after_wave(plan,root)
                 save(root/'activity.json',{'phase':'waiting_for_new_catalog_or_rules','reason':'all admitted unique row contracts attempted; no redundant NPU loops','updated':time.time(),'wave':state['wave']})
                 wait_for_input(root,plan['catalog']);continue
             state['wave']+=1;wave=root/'waves'/str(state['wave'])

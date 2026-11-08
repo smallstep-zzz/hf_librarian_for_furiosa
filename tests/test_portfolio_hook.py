@@ -8,3 +8,17 @@ class Hook(unittest.TestCase):
    with patch('hf_librarian.portfolio_hook.environment',return_value={}),patch('hf_librarian.portfolio_hook.subprocess.Popen'),patch('tplmachine.research.jobs.wait_process',return_value=2):
     r=after_wave({'portfolio_root':d,'sdk_python':'/sdk/python'},Path(d))
    self.assertEqual(len(r['steps']),1);self.assertFalse(r['runtime_promotion'])
+ def test_tcl_change_does_not_replay_corpus_but_generator_change_does(self):
+  from hf_librarian.continuous import corpus_rules
+  with tempfile.TemporaryDirectory() as d:
+   b=Path(d)/'tplmachine';(b/'research').mkdir(parents=True)
+   for name,text in [('research/improvement_model.py','generator'),('aten_kernels.py','mm'),('research/campaign_worker.py','def collect_phase():\n pass\n'),('mlp_regions.py','tcl-v1')]:
+    (b/name).write_text(text)
+   state={};original=corpus_rules(d,state);(b/'mlp_regions.py').write_text('tcl-v2')
+   self.assertEqual(corpus_rules(d,state),original)
+   (b/'research/improvement_model.py').write_text('generator-v2');self.assertNotEqual(corpus_rules(d,state),original)
+ def test_pause_does_not_admit_new_comparison(self):
+  with tempfile.TemporaryDirectory() as d:
+   (Path(d)/'PAUSE_AFTER_WAVE.json').touch()
+   r=after_wave({'service_root':d,'portfolio_root':d},Path(d))
+   self.assertEqual(r['status'],'skipped_for_pause')
