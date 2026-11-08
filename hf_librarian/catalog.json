@@ -8776,6 +8776,82 @@
       ],
       "weight_bytes": 2686704624,
       "availability_note": "Anonymous HTTP HEAD returned 200 for the first selected weight; remaining shards and actual downloads not tested"
+    },
+    {
+      "quantization": "unknown",
+      "difficulty": "hard",
+      "rarity": "unassessed",
+      "npu_status": "untested",
+      "priority": 1000,
+      "gated": false,
+      "metadata_checked": "2026-11-08",
+      "availability_note": "Model card and selected file listed publicly; actual download not tested",
+      "id": "Ultralytics/YOLO26",
+      "categories": [
+        "detection"
+      ],
+      "revision": "8411ea0e16c5a28f8014e5acf806fd6f0583aebe",
+      "include": [
+        "yolo26n.pt",
+        "README.md"
+      ],
+      "exclude": [],
+      "estimated_gib": 0.006,
+      "license": "agpl-3.0",
+      "notes": "YOLO26 nano: convolution, resize, concat, detection head; evaluate default NMS and nms=False separately",
+      "source": "https://huggingface.co/Ultralytics/YOLO26"
+    },
+    {
+      "quantization": "unknown",
+      "difficulty": "hard",
+      "rarity": "unassessed",
+      "npu_status": "untested",
+      "priority": 1000,
+      "gated": false,
+      "metadata_checked": "2026-11-08",
+      "availability_note": "Model card and selected file listed publicly; actual download not tested",
+      "id": "state-spaces/mamba2-130m",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "15bb73c10ae3620b5b79b1fe3deebcd2b86c45df",
+      "include": [
+        "pytorch_model.bin",
+        "config.json",
+        "README.md"
+      ],
+      "exclude": [],
+      "estimated_gib": 0.241,
+      "license": "apache-2.0",
+      "paper_implementation": true,
+      "notes": "Mamba-2 state-space duality, scan and recurrent state update; tokenizer and loader dependencies require review",
+      "source": "https://huggingface.co/state-spaces/mamba2-130m"
+    },
+    {
+      "quantization": "unknown",
+      "difficulty": "hard",
+      "rarity": "unassessed",
+      "npu_status": "untested",
+      "priority": 1000,
+      "gated": false,
+      "metadata_checked": "2026-11-08",
+      "availability_note": "Model card and selected file listed publicly; actual download not tested",
+      "id": "state-spaces/mamba2-370m",
+      "categories": [
+        "language-generation"
+      ],
+      "revision": "main",
+      "include": [
+        "pytorch_model.bin",
+        "config.json",
+        "README.md"
+      ],
+      "exclude": [],
+      "estimated_gib": 0.687,
+      "license": "apache-2.0",
+      "paper_implementation": true,
+      "notes": "Mamba-2 370M scan and recurrent state update; revision, tokenizer and loader dependencies require review",
+      "source": "https://huggingface.co/state-spaces/mamba2-370m"
     }
   ]
 }
