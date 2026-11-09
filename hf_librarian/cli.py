@@ -7,6 +7,8 @@ def main():
     p = argparse.ArgumentParser(prog="hf-librarian")
     p.add_argument("--catalog")
     sub = p.add_subparsers(dest="command", required=True)
+    check=sub.add_parser('optimization-check',help='Qualify optimizers after a drained wave; detached event-driven job')
+    check.add_argument('plan');check.add_argument('--source',required=True);check.add_argument('--output',required=True);check.add_argument('--limit',type=int,default=6)
     continuous=sub.add_parser('continuous',help='Pause after current wave, inspect receipt, or resume')
     continuous.add_argument('action',choices=['pause','status','resume']);continuous.add_argument('plan')
     activity=sub.add_parser("activity",help="One-shot supervisor and active model stages");activity.add_argument("job")
@@ -30,7 +32,10 @@ def main():
     campaign.add_argument('--model');campaign.add_argument('--repair-action',choices=['begin','record','history'],default='history');campaign.add_argument('--record')
     args = p.parse_args(); c = Catalog(args.catalog)
     try:
-        if args.command=='continuous':
+        if args.command=='optimization-check':
+            from .optimization_check import start
+            result=start(args.plan,args.source,args.output,args.limit)
+        elif args.command=='continuous':
             from .continuous_control import control
             result=control(args.action,args.plan)
         elif args.command=='activity':

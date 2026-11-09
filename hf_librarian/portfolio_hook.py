@@ -14,7 +14,11 @@ def after_wave(plan,wave,discover=True):
             save(Path(plan['service_root'])/'activity.json',{'phase':'portfolio_'+action,'queue_root':str(root),'wave_root':str(wave),'updated':time.time()})
         command=[plan['sdk_python'],'-m','tplmachine.research.portfolio',action,'--root',str(root),*extra]
         with (Path(wave)/('portfolio-'+action+'.log')).open('a') as log:
-            child=subprocess.Popen(command,env=dict(environment(plan),TCL_PORTFOLIO_ISOLATED='1'),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+            env=dict(environment(plan),TCL_PORTFOLIO_ISOLATED='1')
+            qualification=root/'adaptive-qualification.json'
+            if qualification.is_file() and (Path(wave)/'summary.json').is_file():
+                env.update(TCL_ADAPTIVE_QUALIFICATION=str(qualification),TCL_ADAPTIVE_SERVICE_ROOT=str(plan['service_root']),TCL_ADAPTIVE_WAVE=str(wave))
+            child=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             from tplmachine.research.jobs import wait_process
             try:code=wait_process(child,3600)
             except TimeoutError:

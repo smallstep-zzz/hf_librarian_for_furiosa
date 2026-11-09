@@ -82,3 +82,11 @@ catalog/rule input; it does not churn old tests to keep utilization high.
 ## Hub research rate limits
 
 Prefer existing catalog entries and cached public model-card evidence before requesting Hub metadata. For a specific model, call `from hf_librarian.hub_research import HubResearch; HubResearch().model('org/model')`. This caches results for 24 hours, coordinates its own local processes, limits starts to 20 per 5 minutes and at least 5 seconds apart, and records a cooldown on HTTP 429. A `ResearchLimit` is a stop signal: do not immediately retry, fan out across models, or switch credentials/IP to evade the limit. The `overnight` discovery path uses this shared local guard and stops on a limit. The helper does not control other applications sharing the IP or SDK-internal requests; coordinate those separately, and do not assume the guard can guarantee the absence of HTTP 429. Metadata and a public file listing do not prove that every weight is downloadable or that the model runs on NPU. Never download weights solely to populate the catalog unless asked.
+
+For optimizer changes use `optimization-check PLAN --source TCL_SOURCE --output NEW_ROOT`.
+It requests a drained-wave pause, runs as a detached event-driven job, and compares
+fixed/adaptive/cached closed regions from HF configuration snapshots. It validates
+fresh numerical/NPU gates and the selected artifact's runtime binding. This is not
+whole-model support. Exact qualified shape/source/environment cases are automatically
+used by the normal portfolio hook; hold cases retain the old path. Review results
+and resume the corpus once; do not run a polling watcher or invoke an LLM per case.

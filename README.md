@@ -264,3 +264,22 @@ separately. Failed fitting preserves the previous registered model. A changed tr
 fingerprint creates a new attempt directory, preserving old errors rather than
 permanently reusing a failed result. Large merged training indexes are sharded by
 TCLMachine while retaining the strict per-file JSON bound.
+
+### Qualify optimizer changes through the librarian
+
+```bash
+hf-librarian optimization-check /path/to/plan.json \
+  --source /path/to/TCLMachine --output /path/to/new-qualification
+```
+
+This detached job first pauses after the active wave, then uses existing HF config
+snapshots to compare fixed/adaptive/cached region optimization on the NPU. It
+checks numerical accuracy, fresh NPU trace, choice quality, turnaround, and loading
+and executing the selected artifact. Reports distinguish structural region tests
+from whole-model inference. No new weights, automatic LLM calls or HF cache deletion.
+
+Only exact shape/source/SDK cases passing qualification enter the normal after-wave
+portfolio hook automatically. Others keep the established path. Review the report,
+then `hf-librarian continuous resume /path/to/plan.json`; tuning is never repeated
+inside model forward. Qualification remains bounded, and the service stays paused
+until resumed. Raw traces stay on the execution host, with JSON summary reports.
