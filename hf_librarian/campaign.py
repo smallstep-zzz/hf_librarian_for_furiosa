@@ -59,9 +59,11 @@ class Ledger:
 
 
 def environment(plan):
-    return dict(os.environ,PYTHONPATH=os.pathsep.join([plan['tclmachine_source'],*plan.get('pythonpath',[]),
+    env=dict(os.environ,PYTHONPATH=os.pathsep.join([plan['tclmachine_source'],*plan.get('pythonpath',[]),
         str(Path(__file__).resolve().parents[1])]),RAYON_NUM_THREADS='5',OMP_NUM_THREADS='1',PYTHONFAULTHANDLER='1',
         TCLMACHINE_PRIOR_REGISTRY=str(plan.get('model_registry',Path.home()/'.local/share/tclmachine/compiler-priors')))
+    if plan.get('npu_lock'):env['FXBEX_NPU_LOCK']=str(plan['npu_lock'])
+    return env
 
 
 def start(plan):
@@ -342,9 +344,15 @@ def issues(root,group=None,detail='summary'):
     try:report=workspace.report(root/'review')
     finally:workspace.close()
     if group is None:
+        repair_db=root/'campaign.sqlite'
+        repairs=sqlite3.connect(repair_db.resolve().as_uri()+'?mode=ro',uri=True) if repair_db.exists() else None
         for item in report['groups']:
             item['automatic_handling']='retain baseline; collect diverse data' if item['cause']=='surrogate_shape_generalization_gap' else None
             item['review_owner']=None if item['automatic_handling'] else 'FHA'
+            if repairs is not None:
+                row=repairs.execute('SELECT record FROM repairs WHERE group_id=? ORDER BY attempt DESC LIMIT 1',(item['group_id'],)).fetchone()
+                if row:item['latest_repair']=json.loads(row[0])
+        if repairs is not None:repairs.close()
         return {'unique_issue_groups':report['unique_issue_groups'],'issue_occurrences':report['issue_occurrences'],
                 'groups':report['groups'][:5],'scope':'shared workspace issue history',
                 'all_groups':str(root/'review/issue_index.json')}

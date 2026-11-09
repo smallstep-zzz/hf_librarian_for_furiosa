@@ -18,7 +18,9 @@ def corpus_rules(source,state):
     mm=(base/'aten_kernels.py').read_text()
     nodes=[n for n in ast.parse(mm).body if isinstance(n,ast.FunctionDef) and n.name in ('mm','contraction')]
     if nodes:mm='\n'.join(mm.splitlines()[:max(n.end_lineno for n in nodes)])+'\n'
+    tiny=base/'research/tiny_mm.py'
     inputs=fingerprint({'generator':(base/'research/improvement_model.py').read_text(),
+                        'tiny_ve':tiny.read_text() if tiny.exists() else None,
                         'mm':mm,'collect':ast.get_source_segment(text,collect)})
     if 'corpus_rules_baseline' not in state:
         legacy=fingerprint({str(p):p.read_text() for p in
@@ -50,8 +52,9 @@ def aggregate(plan,root,state):
     paths=sorted({str(p) for base in roots for p in base.rglob('sample_index.json')
                   if p.parent.name=='collection'})
     keys=set()
+    from tplmachine.io import iter_sample_index
     for path in paths:
-        keys.update(x['key'] for x in json.loads(Path(path).read_text())
+        keys.update(x['key'] for x in iter_sample_index(path)
                     if any(c.get('operator','aten.mm.default')=='aten.mm.default' for c in x.get('contexts',[])))
     identity=fingerprint(sorted(keys))
     if not keys or identity==state.get('trained_keys'):return
@@ -70,7 +73,13 @@ def aggregate(plan,root,state):
         if result['receipt']['returncode']==0:
             result['registry']=register_compiler_prior(output/'models/compiler-estimate',plan['model_registry'],
                                                        result['result'].get('models',[]))
-        if result['receipt']['returncode']==0:state['trained_keys']=identity
+        if result['receipt']['returncode']==0:
+            state['trained_keys']=identity
+            review=root/'review-training.json'
+            if review.exists():
+                previous=json.loads(review.read_text())
+                if previous.get('status')=='failed':
+                    save(review,{'status':'resolved','previous_failure':previous,'result_path':result.get('result_path'),'identity':identity})
         else:save(root/'review-training.json',{'status':'failed','identity':identity,'result_path':result.get('result_path'),'action':'inspect failed training before explicit retry'})
         state['last_training']=result
         save(root/'state.json',state)

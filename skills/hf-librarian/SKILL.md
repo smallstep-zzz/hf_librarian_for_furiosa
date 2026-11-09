@@ -90,3 +90,12 @@ fresh numerical/NPU gates and the selected artifact's runtime binding. This is n
 whole-model support. Exact qualified shape/source/environment cases are automatically
 used by the normal portfolio hook; hold cases retain the old path. Review results
 and resume the corpus once; do not run a polling watcher or invoke an LLM per case.
+
+For historical failures, group by canonical cause before repair. Keep original
+observations; attach scoped repair evidence with `campaign repair begin/record`.
+Issue summaries include latest repair receipts without erasing occurrence counts.
+Use shard-aware sample-index readers in aggregation/training; never raise general
+JSON limits to load a cumulative index. Pass plan.npu_lock to SDK children as
+FXBEX_NPU_LOCK so canonical inode checks agree with inherited scheduler leases.
+Compile deadline failures get one quiet retry after CPU drain before classifying
+support. Finite tiny-VE corpus routing is not a universal ATen runtime replacement.
