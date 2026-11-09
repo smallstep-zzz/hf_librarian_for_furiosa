@@ -42,6 +42,15 @@ class FailureTests(unittest.TestCase):
             with patch.object(m.subprocess,'check_output',side_effect=m.subprocess.CalledProcessError(1,'gh')) as call:
                 with self.assertRaises(m.subprocess.CalledProcessError): m.publish(root,'owner/repo')
                 self.assertEqual(call.call_count,1)
+    def test_trace_requires_every_step(self):
+        events=[{'name':'execution_plan::a'},{'name':'execution_plan::b'},{'name':'x::Task::execution_plan::a'}]
+        self.assertEqual(m.trace_evidence(events)['npu_execution'],'partial_or_unmatched')
+        self.assertEqual(m.trace_evidence([])['npu_execution'],'not_observed')
+    def test_cpu_fallback_is_visible_even_with_npu_steps(self):
+        events=[{'name':'execution_plan::a'},{'name':'x::Task::execution_plan::a'},{'name':'run_by_cpu'}]
+        r=m.trace_evidence(events)
+        self.assertEqual(r['npu_execution'],'confirmed_per_step')
+        self.assertEqual(r['cpu_routes'],1)
     def test_atomic_unicode_roundtrip(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/'result.json';m.write(p,{'오류':'원본'});m.write(p,{'오류':'재현'})
