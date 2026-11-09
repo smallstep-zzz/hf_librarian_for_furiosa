@@ -1,0 +1,38 @@
+{
+  "model": "Qwen/Qwen3-8B-FP8",
+  "status": "passed",
+  "generations": [
+    {
+      "prompt": "Reply with only the number: what is 2+2?",
+      "text": "4",
+      "expected_present": true,
+      "request_s": 0.049544832203537226,
+      "tokens": 2
+    },
+    {
+      "prompt": "Reply with exactly this word: READY",
+      "text": "READY",
+      "expected_present": true,
+      "request_s": 0.027895692037418485,
+      "tokens": 2
+    },
+    {
+      "history_turn": 1,
+      "text": "OK. My name is Minsoo.",
+      "request_s": 0.10403804294764996,
+      "tokens": 10
+    },
+    {
+      "history_turn": 2,
+      "text": "Minsoo",
+      "request_s": 0.046621951973065734,
+      "tokens": 4
+    }
+  ],
+  "evidence_scope": "native FXB backend and process/device mapping; no per-operator trace API exposed",
+  "wrapped_class": true,
+  "load_s": 7.822633804054931,
+  "device_processes": "+---------+-------------+-------------------------------------------------------------------------+\n| PID     | NPU core    | CMD                                                                     |\n+---------+-------------+-------------------------------------------------------------------------+\n| 1342870 | npu3:[0, 7] | /root/.venvs/fury-tools/bin/python /root/fury-validation/native_test.py |\n+---------+-------------+-------------------------------------------------------------------------+\n",
+  "history_passed": true,
+  "total_s": 8.348417484899983
+}
