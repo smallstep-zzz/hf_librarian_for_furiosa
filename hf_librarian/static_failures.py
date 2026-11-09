@@ -122,6 +122,14 @@ def failure_details(record, root):
     record['signature']=hashlib.sha256(json.dumps(key,sort_keys=True).encode()).hexdigest()[:20]
 
 
+def trace_evidence(events):
+    steps={e['name'] for e in events if e.get('name','').startswith('execution_plan::')}
+    npu={e['name'].split('::Task::',1)[1] for e in events if '::Task::execution_plan::' in e.get('name','')}
+    cpu=sum(e.get('name')=='run_by_cpu' for e in events)
+    return {'steps':sorted(steps),'npu_steps':sorted(npu),'cpu_routes':cpu,
+            'npu_execution':'confirmed_per_step' if steps and steps==npu else 'partial_or_unmatched' if npu else 'not_observed'}
+
+
 def worker(case, root):
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
     if (root/'result.json').exists(): raise FileExistsError('attempt already exists; use a new output directory')
@@ -131,6 +139,7 @@ def worker(case, root):
     started=time.monotonic()
     def stage(name):
         record['stage']=name
+        if name=='execute': record['npu_execution']='unknown'
         record['events'].append({'stage':name,'elapsed_s':time.monotonic()-started})
         write(root/'result.json',record)
     try:
@@ -187,13 +196,12 @@ def worker(case, root):
                 for a,b in zip(actual,expected): torch.testing.assert_close(a,b,atol=.02,rtol=.02)
         stage('trace_gate')
         events=json.loads((root/'trace.json').read_text())['traceEvents']
-        steps={e['name'] for e in events if e.get('name','').startswith('execution_plan::')}
-        npu={e['name'].split('::Task::',1)[1] for e in events if '::Task::execution_plan::' in e.get('name','')}
-        cpu=sum(e.get('name')=='run_by_cpu' for e in events)
-        record['trace']={'steps':sorted(steps),'npu_steps':sorted(npu),'cpu_routes':cpu}
-        record['cpu_fallback']='detected' if cpu else 'no_trace_routes'
-        if cpu: raise RuntimeError('CPU_FALLBACK_DETECTED')
-        if not steps or steps!=npu: raise RuntimeError('NPU_STEP_EVIDENCE_MISSING')
+        evidence=trace_evidence(events)
+        record['trace']=evidence
+        record['npu_execution']=evidence['npu_execution']
+        record['cpu_fallback']='detected' if evidence['cpu_routes'] else 'no_trace_routes'
+        if evidence['cpu_routes']: raise RuntimeError('CPU_FALLBACK_DETECTED')
+        if evidence['npu_execution']!='confirmed_per_step': raise RuntimeError('NPU_STEP_EVIDENCE_MISSING')
         record.update(status='smoke_passed',npu_execution='confirmed_per_step',acceptance='limited smoke; changed inputs/repeats/state/fresh-process still required')
     except Exception as exc:
         record.update(status='failed',error_type=type(exc).__name__,error=str(exc),error_code=getattr(exc,'code',None))
