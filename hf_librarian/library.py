@@ -132,9 +132,10 @@ class Librarian:
             plan = snapshot_download(model_id, revision=commit, cache_dir=str(self.cache), allow_patterns=patterns, ignore_patterns=excludes, dry_run=True)
             needed = sum(item.file_size for item in plan if item.will_download)
             with self._guard:
-                stats = self.usage()
-                if stats["cache_bytes"] + self._reserved + needed > stats["limit_bytes"] or stats["free_bytes"] - self._reserved - needed < self.settings["min_free_gib"] * GIB:
-                    raise RuntimeError("Insufficient cache budget or disk space")
+                if needed:
+                    stats = self.usage()
+                    if stats["cache_bytes"] + self._reserved + needed > stats["limit_bytes"] or stats["free_bytes"] - self._reserved - needed < self.settings["min_free_gib"] * GIB:
+                        raise RuntimeError("Insufficient cache budget or disk space")
                 self._reserved += needed
             try:
                 self.emit("downloading", model_id, bytes=needed)

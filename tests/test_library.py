@@ -35,6 +35,20 @@ class Tests(unittest.TestCase):
                 self.assertEqual(lib.request(category='test'),str(snapshot))
         self.assertEqual(events[0]['event'],'available')
 
+    def test_zero_download_reuses_shared_cache_but_new_bytes_obey_budget(self):
+        from types import SimpleNamespace as S
+        snapshot=Path(self.temp.name)/'snapshot';snapshot.mkdir();(snapshot/'model.safetensors').write_text('weights')
+        info=S(sha='commit',siblings=[S(rfilename='model.safetensors',size=7)])
+        for needed in (False,True):
+            with self.subTest(needed=needed),patch('hf_librarian.library.HfApi') as api,patch('hf_librarian.library.snapshot_download',return_value=[S(file_size=7,will_download=needed)]),patch('hf_librarian.library.subprocess.run',return_value=S(returncode=0,stdout=str(snapshot)+'\n',stderr='')) as run:
+                api.return_value.model_info.return_value=info
+                with Librarian(self.catalog,Path(self.temp.name)/str(needed)) as lib:
+                    if needed:
+                        with patch.object(lib,'usage',return_value={'cache_bytes':2*1024**3,'limit_bytes':1024**3,'free_bytes':4*1024**3}),self.assertRaises(RuntimeError):lib.request(model_id='org/model')
+                        run.assert_not_called()
+                    else:
+                        with patch.object(lib,'usage',side_effect=AssertionError('no growth: do not scan/reject shared cache')):self.assertEqual(lib.request(model_id='org/model'),str(snapshot))
+
 if __name__ == '__main__': unittest.main()
 
 class VerificationTests(unittest.TestCase):
