@@ -22,3 +22,12 @@ class Hook(unittest.TestCase):
    (Path(d)/'PAUSE_AFTER_WAVE.json').touch()
    r=after_wave({'service_root':d,'portfolio_root':d},Path(d))
    self.assertEqual(r['status'],'skipped_for_pause')
+ def test_adding_other_aten_kernels_keeps_mm_corpus_signature(self):
+  from hf_librarian.continuous import corpus_rules
+  with tempfile.TemporaryDirectory() as d:
+   b=Path(d)/'tplmachine';(b/'research').mkdir(parents=True)
+   for name,text in [('research/improvement_model.py','gen'),('aten_kernels.py','def contraction():\n pass\ndef mm():\n pass\n'),('research/campaign_worker.py','def collect_phase():\n pass\n')]:
+    (b/name).write_text(text)
+   state={};old=corpus_rules(d,state)
+   with (b/'aten_kernels.py').open('a') as f:f.write('\ndef bmm():\n pass\n')
+   self.assertEqual(corpus_rules(d,state),old)

@@ -15,8 +15,11 @@ def corpus_rules(source,state):
     import ast
     base=Path(source)/'tplmachine';worker=base/'research/campaign_worker.py'
     text=worker.read_text();collect=next(n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef) and n.name=='collect_phase')
+    mm=(base/'aten_kernels.py').read_text()
+    nodes=[n for n in ast.parse(mm).body if isinstance(n,ast.FunctionDef) and n.name in ('mm','contraction')]
+    if nodes:mm='\n'.join(mm.splitlines()[:max(n.end_lineno for n in nodes)])+'\n'
     inputs=fingerprint({'generator':(base/'research/improvement_model.py').read_text(),
-                        'mm':(base/'aten_kernels.py').read_text(),'collect':ast.get_source_segment(text,collect)})
+                        'mm':mm,'collect':ast.get_source_segment(text,collect)})
     if 'corpus_rules_baseline' not in state:
         legacy=fingerprint({str(p):p.read_text() for p in
             (base/'research/improvement_model.py',base/'aten_kernels.py',worker,base/'mlp_kernels.py',base/'mlp_regions.py') if p.exists()})
@@ -124,7 +127,8 @@ def run(plan_path):
             if not chosen:
                 if plan.get('portfolio_root'):
                     from .portfolio_hook import after_wave
-                    after_wave(plan,root)
+                    comparison=after_wave(plan,root)
+                    if comparison.get('remaining_pending',0)>0:continue
                 save(root/'activity.json',{'phase':'waiting_for_new_catalog_or_rules','reason':'all admitted unique row contracts attempted; no redundant NPU loops','updated':time.time(),'wave':state['wave']})
                 wait_for_input(root,plan['catalog']);continue
             state['wave']+=1;wave=root/'waves'/str(state['wave'])
