@@ -283,3 +283,8 @@ portfolio hook automatically. Others keep the established path. Review the repor
 then `hf-librarian continuous resume /path/to/plan.json`; tuning is never repeated
 inside model forward. Qualification remains bounded, and the service stays paused
 until resumed. Raw traces stay on the execution host, with JSON summary reports.
+
+
+## 정적 FXB 실패 자동 수집
+
+서로 다른 구조를 대표하는 캐시 모델로 TCLMachine의 정적 실행 계획 생성과 fxbX 적재/실행을 단계별 검증합니다. 실패 노드·입력·버전·소스 해시·재현 자료를 보존하고 GitHub 이슈로 이어서 조사할 수 있습니다. [한국어 사용법](docs/STATIC_FAILURES.md)과 [최초 수집 결과 및 이슈 인덱스](https://github.com/smallstep-zzz/TCLMachine/issues/8)를 참고하세요.
