@@ -5,6 +5,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import shlex
 import datetime
 import socket
 from pathlib import Path
@@ -34,6 +35,34 @@ def write(path, value):
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def consumer_source_root(value):
+    """Resolve a checkout root containing both public and engine packages."""
+    root = Path(value).expanduser().resolve()
+    required = ('fxbx/__init__.py', 'fxbex/__init__.py', 'fxbex/execution_fxb.py')
+    if any(not (root / name).is_file() for name in required):
+        raise ValueError(f'--consumer-source must contain both fxbx and fxbex packages: {root}')
+    return root
+
+
+def load_consumer(source=None):
+    """Select one consumer tree for export, reload and child processes."""
+    root = consumer_source_root(source) if source is not None else None
+    if root is not None:
+        sys.path.insert(0, str(root))
+        previous = os.environ.get('PYTHONPATH', '')
+        if previous.split(os.pathsep)[0] != str(root):
+            os.environ['PYTHONPATH'] = os.pathsep.join(filter(None, (str(root), previous)))
+    import fxbx
+    from fxbex import execution_fxb
+
+    paths = (Path(fxbx.__file__).resolve(), Path(execution_fxb.__file__).resolve())
+    if root is not None and any(not path.is_relative_to(root) for path in paths):
+        raise RuntimeError(f'Selected consumer {root}, but imports resolved to {paths}')
+    if fxbx.ExecutionFXB is not execution_fxb.ExecutionFXB:
+        raise RuntimeError('fxbx and fxbex resolved to different execution-plan consumers')
+    return fxbx, execution_fxb, root
 
 
 def snapshot(model_id):
@@ -103,7 +132,16 @@ def failure_details(record, root):
     if preflight.exists():
         record['preflight']=json.loads(preflight.read_text())
     code=record.get('error_code') or record.get('preflight',{}).get('code')
-    if code=='EXECUTION_RULE_GAP':
+    deferrals=record.get('preflight',{}).get('static_preparation',{}).get('consumer_capability_deferrals',{})
+    if code=='EXECUTION_RULE_GAP' and deferrals:
+        record['diagnosis']={
+            'observed_reason':'로드된 fxbX 소비자의 기능 부족으로 일부 규칙의 적용이 보류됨',
+            'root_cause_status':'consumer capability deferrals confirmed; other rule gaps may remain',
+            'consumer_capability_deferrals':deferrals,
+            'proposed_fix':'필요한 기능을 지원하는 fxbX 체크아웃을 --consumer-source로 지정한다.',
+            'next_evidence':['실제로 로드한 소비자 소스 경로·SHA256·기능을 확인',
+                             '같은 모델 리비전과 입력으로 CPU preflight를 재검사']}
+    elif code=='EXECUTION_RULE_GAP':
         record['diagnosis']={'observed_reason':'정적 실행 계획의 공유 EDF 규칙이 해당 연산/shape/dtype/layout을 수용하지 못함',
             'root_cause_status':'preflight guard confirmed; underlying SDK support unknown',
             'proposed_fix':'failure_groups별 최소 그래프를 분리하고 동일 shape/dtype의 공유 규칙을 추가·수치/trace 검증한다. 모델명 예외는 추가하지 않는다.',
@@ -130,12 +168,21 @@ def trace_evidence(events):
             'npu_execution':'confirmed_per_step' if steps and steps==npu else 'partial_or_unmatched' if npu else 'not_observed'}
 
 
-def worker(case, root):
+def runtime_weights(model):
+    """Bind named tensors, including nonpersistent frozen buffer guards."""
+    values = dict(model.named_parameters(remove_duplicate=False)) | dict(model.named_buffers(remove_duplicate=False))
+    if any(value.requires_grad for value in values.values()):
+        raise ValueError('Freeze parameters and buffers before loading the FXB')
+    return {name: value.detach() for name, value in values.items()}
+
+
+def worker(case, root, consumer_source=None, artifact_root=None):
     root=Path(root); root.mkdir(parents=True,exist_ok=True)
+    artifact_root=(Path(artifact_root).expanduser() if artifact_root is not None else root/'edfs').resolve()
     if (root/'result.json').exists(): raise FileExistsError('attempt already exists; use a new output directory')
     record={'schema':'hf-librarian.static-failure.v1','case':case,'status':'running','stage':'environment',
             'npu_execution':'not_run','cpu_fallback':'unknown','events':[], 'source_hashes':{},'started_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            'host':socket.gethostname(),'collector_sha256':digest(__file__)}
+            'host':socket.gethostname(),'collector_sha256':digest(__file__),'artifact_root':str(artifact_root)}
     started=time.monotonic()
     def stage(name):
         record['stage']=name
@@ -143,13 +190,25 @@ def worker(case, root):
         record['events'].append({'stage':name,'elapsed_s':time.monotonic()-started})
         write(root/'result.json',record)
     try:
-        import torch, tclmachine, fxbx
+        fxbx, execution_fxb, selected_source = load_consumer(consumer_source)
+        import torch, tclmachine
         from tplmachine.graph_capture import capture_for_export
-        record['versions']={p:importlib.metadata.version(p) for p in ('torch','transformers','furiosa-torch','fxbx')}
+        record['consumer']={
+            'requested_source':str(selected_source) if selected_source is not None else None,
+            'api_version':getattr(fxbx,'__version__',None),
+            'public_module':str(Path(fxbx.__file__).resolve()),
+            'execution_module':str(Path(execution_fxb.__file__).resolve()),
+            'capabilities':{name:bool(getattr(execution_fxb.ExecutionFXB,name,False)) for name in
+                            ('supports_zero_input_kernels','supports_frozen_buffer_guards')}}
+        record['versions']={p:importlib.metadata.version(p) for p in ('torch','transformers','furiosa-torch')}
+        try:installed_version=importlib.metadata.version('fxbx')
+        except importlib.metadata.PackageNotFoundError:installed_version=None
+        record['consumer']['installed_distribution_version']=installed_version
+        record['versions']['fxbx']=record['consumer']['api_version'] or installed_version
         record['versions']['tclmachine']=tclmachine.__version__
         import tplmachine.execution_plan as owner
-        for mod in (tclmachine,owner,fxbx):
-            path=Path(mod.__file__);record['source_hashes'][str(path)]=digest(path)
+        for mod in (tclmachine,owner,fxbx,execution_fxb):
+            path=Path(mod.__file__).resolve();record['source_hashes'][str(path)]=digest(path)
         try:
             record['compiler_version']=subprocess.check_output(['furiosa-tcc','--version'],text=True,stderr=subprocess.STDOUT,timeout=10).strip()
         except (OSError,subprocess.SubprocessError) as exc:
@@ -158,7 +217,7 @@ def worker(case, root):
         record['producer_tree_sha256']=hashlib.sha256(''.join(str(p.relative_to(tree))+digest(p) for p in sorted(tree.rglob('*.py'))).encode()).hexdigest()
         import tarfile
         with tarfile.open(root/'sources.tar.gz','w:gz') as archive:
-            for folder in (tree,Path(tclmachine.__file__).parent,Path(fxbx.__file__).parent,Path(fxbx.__file__).parent.parent/'fxbex'):
+            for folder in (tree,Path(tclmachine.__file__).parent,Path(fxbx.__file__).parent,Path(execution_fxb.__file__).parent):
                 for file in sorted(folder.rglob('*.py')):
                     archive.add(file,arcname=str(file.relative_to(folder.parent)))
             archive.add(__file__,arcname='executed_collector.py')
@@ -178,7 +237,7 @@ def worker(case, root):
         record['operator_counts']=dict(collections.Counter(n['target'] for n in nodes if n['op']=='call_function'))
         stage('export_static')
         report=tclmachine.export_model(ep,inputs,root/'model.fxb',compile_workers=2,
-            artifact_root=root/'edfs',source_metadata={**identity,'architecture':type(model).__qualname__})
+            artifact_root=artifact_root,source_metadata={**identity,'architecture':type(model).__qualname__})
         write(root/'export.json',report)
         stage('cpu_reference')
         with torch.no_grad(): expected=model(*inputs)
@@ -187,7 +246,7 @@ def worker(case, root):
         from furiosa.torch.profiler import Profiler
         # A new instance validates archive loading; fresh process is a separate, still-required acceptance gate.
         with patch('furiosa.torch.compiler.compile',side_effect=AssertionError('runtime compilation forbidden')):
-            with fxbx.GraphFXB(root/'model.fxb',weights=model.state_dict()) as runtime:
+            with fxbx.GraphFXB(root/'model.fxb',weights=runtime_weights(model)) as runtime:
                 stage('execute')
                 with Profiler(str(root/'trace.json')): actual=runtime.predict(inputs)
                 stage('numerical')
@@ -223,7 +282,15 @@ def summarize(root):
     for r in rows:
         lines.append(f"|{r['case']} ({CASES[r['case']][1]})|{r['status']}|{r['stage']}|{r.get('error_code') or r.get('error_type','')}|")
     for r in rows:
-        lines += ['',f"## {r['case']}", '', f"- 증거: `{root/r['case']}`",f"- 입력/모델: `{json.dumps(r.get('identity',{}),ensure_ascii=False)}`",f"- 판정: NPU={r.get('npu_execution')}; CPU fallback={r.get('cpu_fallback')}",f"- 재현: `python -m hf_librarian.static_failures run --out /root/.cache/hf-librarian/static-rerun-새이름 --cases {r['case']}`"]
+        consumer=r.get('consumer',{})
+        source=consumer.get('requested_source')
+        source_arg=' --consumer-source '+shlex.quote(source) if source else ''
+        artifacts=r.get('artifact_root')
+        default_artifacts=(root/r['case']/'edfs').resolve()
+        artifact_arg=' --artifact-root '+shlex.quote(artifacts) if artifacts and Path(artifacts)!=default_artifacts else ''
+        lines += ['',f"## {r['case']}", '', f"- 증거: `{root/r['case']}`",f"- 입력/모델: `{json.dumps(r.get('identity',{}),ensure_ascii=False)}`",f"- 판정: NPU={r.get('npu_execution')}; CPU fallback={r.get('cpu_fallback')}",f"- 재현: `python -m hf_librarian.static_failures run --out /root/.cache/hf-librarian/static-rerun-새이름 --cases {r['case']}{source_arg}{artifact_arg}`"]
+        if consumer:lines.append(f"- 로드된 소비자: `{json.dumps(consumer,ensure_ascii=False)}`")
+        if artifacts:lines.append(f'- 컴파일 아티팩트: `{artifacts}`')
         if r['status']=='failed':
             lines += [f"- 오류: `{r.get('error','')[:1500]}`", f"- 진단: {json.dumps(r.get('diagnosis',{}),ensure_ascii=False)}", f"- 지문: `{r.get('signature')}`"]
             for g in r.get('preflight',{}).get('failure_groups',[]):
@@ -275,20 +342,32 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='action',required=True)
     run=sub.add_parser('run');run.add_argument('--out',required=True);run.add_argument('--cases',nargs='+',choices=CASES,default=list(CASES));run.add_argument('--timeout',type=int,default=900)
     w=sub.add_parser('worker');w.add_argument('--case',choices=CASES,required=True);w.add_argument('--out',required=True)
+    for action in (run,w):
+        action.add_argument('--consumer-source',type=Path,help='fxbX checkout containing fxbx and fxbex; defaults to the SDK environment')
+        action.add_argument('--artifact-root',type=Path,help='existing or new compiler artifact directory; defaults to the attempt edfs directory')
     s=sub.add_parser('report');s.add_argument('--out',required=True)
     pub=sub.add_parser('publish');pub.add_argument('--out',required=True);pub.add_argument('--repo',required=True)
     args=p.parse_args()
     if args.action=='publish':print(json.dumps(publish(args.out,args.repo)));return
-    if args.action=='worker':worker(args.case,args.out);return
+    if args.action=='worker':worker(args.case,args.out,args.consumer_source,args.artifact_root);return
     if args.action=='report':summarize(args.out);return
     if args.timeout<=0:p.error('timeout must be positive')
+    try:
+        source=consumer_source_root(args.consumer_source) if args.consumer_source is not None else None
+        artifact_root=args.artifact_root.expanduser().resolve() if args.artifact_root is not None else None
+    except (OSError,ValueError) as exc:p.error(str(exc))
     root=Path(args.out).absolute();root.mkdir(parents=True,exist_ok=False)
     env={**os.environ,'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','FURIOSA_REQUIRE_NPU':'1',
          'FXBX_TRACE_STEPS':'1','RAYON_NUM_THREADS':'2','OMP_NUM_THREADS':'2'}
+    if source is not None:
+        env['PYTHONPATH']=os.pathsep.join(filter(None,(str(source),env.get('PYTHONPATH'))))
     for case in dict.fromkeys(args.cases):
         target=root/case;target.mkdir()
         command=[sys.executable,str(Path(__file__).resolve()),'worker','--case',case,'--out',str(target)]
-        write(target/'command.json',{'argv':command,'cwd':os.getcwd(),'environment':{k:env[k] for k in ('PYTHONPATH','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','FXBX_TRACE_STEPS') if k in env}})
+        if source is not None:command.extend(('--consumer-source',str(source)))
+        if artifact_root is not None:command.extend(('--artifact-root',str(artifact_root)))
+        write(target/'command.json',{'argv':command,'cwd':os.getcwd(),
+              'artifact_root':str(artifact_root or target/'edfs'),'environment':{k:env[k] for k in ('PYTHONPATH','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','FXBX_TRACE_STEPS') if k in env}})
         with (target/'process.log').open('w') as log:
             process=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             try: code=process.wait(timeout=args.timeout)

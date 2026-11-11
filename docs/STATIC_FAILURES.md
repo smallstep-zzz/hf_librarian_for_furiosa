@@ -4,19 +4,27 @@ TCLMachine의 `export_model`이 만드는 정적 EDF·실행 계획과 fxbX의 �
 
 ## 사용
 
-호환 SDK 환경과 최신 TCLMachine/fxbX가 필요하다. 현재 검증 환경은 5번 서버(`ssh furiosa-npu`), Python `/root/TCLMachine_test/.venv/bin/python`, TCLMachine 0.5.1/fxbX 0.8.1 소스 및 SDK 2026.4.0이다. 25번 서버의 예전 소스와 구분한다. 기존 모델이나 다른 작업을 중지하지 않는다. 실행 전 `furiosa-smi ps`를 확인하고 비어 있는 장치를 사용한다. 이 도구는 여러 캠페인의 NPU 할당을 중재하지 않으므로 같은 장치에 동시에 실행하지 않는다.
+검증 환경은 5번 서버(`ssh furiosa-npu`), Python `/root/TCLMachine_test/.venv/bin/python`, TCLMachine `66251c4`, fxbX `f4025ef` 소스와 SDK 2026.4.0이다. 실행 전 `furiosa-smi ps`를 확인하고 비어 있는 장치를 사용한다.
 
 설치된 hf_librarian의 Python 의존성이 SDK venv에 없다면 아래 독립 파일 실행을 사용한다. SDK 환경에 의존성을 새로 설치할 필요가 없다.
 
 ```bash
 ssh furiosa-npu
-export PYTHONPATH=/root/TCLMachine_test/src
+export PYTHONPATH=/root/TCLMachine
 PY=/root/TCLMachine_test/.venv/bin/python
 TOOL=/root/hf_librarian_for_furiosa/hf_librarian/static_failures.py
-$PY "$TOOL" run --out /root/.cache/hf-librarian/static-failures/my-new-attempt
+$PY "$TOOL" run --out /root/.cache/hf-librarian/static-failures/my-new-attempt --consumer-source /root/fxbX
 ```
 
 hf_librarian이 설치된 같은 환경에서는 `python -m hf_librarian.static_failures`도 동일하다. `--cases minilm whisper segformer`로 범위를 줄이고 `--timeout 900`으로 **모델당** 제한 시간을 지정한다. 순차 실행하며 컴파일 worker는 2개다. HF 다운로드 동시성 설정과 별개다. 출력 디렉터리는 매번 새 이름을 사용한다. 과거 시도/실패를 덮어쓰지 않는다. timeout 시 해당 worker의 프로세스 그룹만 종료하며 다른 사용자의 작업을 종료하지 않는다.
+
+캠페인의 소비자를 고정하려면 `--consumer-source /path/to/fxbX`를 추가한다. 이 경로에는 `fxbx/`와 `fxbex/`가 함께 있어야 한다. 작업자와 그 자식 프로세스에서 해당 소스를 검색 경로의 앞에 놓고, 작업자가 실제로 불러온 두 모듈의 경로를 검사한다. 옵션을 생략하면 SDK 환경에서 찾은 소비자를 사용한다.
+
+`result.json`은 실제 소비자 모듈 경로와 SHA256, API 버전, 설치 배포판 버전, frozen-buffer 검증 지원 여부를 기록한다. 서로 다른 소스가 같은 버전을 표시할 수 있다. `consumer_capability_deferrals`가 있으면 필요한 기능을 갖춘 소비자로 같은 모델 리비전과 입력을 사전 검사한다. 66251c4 재검증에서 설치된 `0.8.3`은 frozen-buffer 검증을 지원하지 않았고, 같은 버전을 표시하는 fxbX main `7b34144`의 실행 코드에는 `f4025ef`의 검증이 포함돼 있다.
+
+같은 컴파일 요청을 재시도할 때는 `--artifact-root /path/to/existing/edfs`로 기존 EDF 캐시를 지정할 수 있다. 컴파일러의 캐시 키와 무결성 검사가 재사용 여부를 결정한다. 옵션을 생략하면 각 시도의 `edfs/`를 사용한다. 실제 경로는 `command.json`과 `result.json`에 기록한다.
+
+MiniLM `[1,16]` 재시험에서 `--consumer-source`와 `--artifact-root`를 함께 사용해 EDF 33개를 모두 재사용했다. FXB 생성과 수치·NPU 확인은 12.92초에 완료됐다. 실행 시 비영구 버퍼도 이름과 레이아웃을 보존한 채 로더에 전달한다.
 
 ## 대표성
 
