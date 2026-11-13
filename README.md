@@ -2,9 +2,9 @@
 
 Hugging Face 모델 후보를 분류하고 표준 Hub 캐시에 준비하는 경량 라이브러리입니다. 모델 선정은 컴파일러 테스트의 다양성을 위한 것이며 NPU/EDF 호환성 보증이 아닙니다.
 
-## TCLMachine 성능 향상 캠페인
+## furyNo5 성능 향상 캠페인
 
-단일 오류 재현·작은 수정은 TCLMachine을 직접 사용하세요. 여러 모델/카테고리의
+단일 오류 재현·작은 수정은 furyNo5을 직접 사용하세요. 여러 모델/카테고리의
 준비·수집·평가·훈련은 이 관리자가 기계적으로 처리합니다. 모델 가중치를
 미세조정하는 기능이 아닙니다. 다음은 SDK가 이미 설치된 Linux 서버용 계획 예시입니다.
 경로와 카탈로그의 모델 ID를 실제 환경에 맞게 지정하세요.
@@ -65,7 +65,7 @@ CPU는 별도 SDK 프로세스2개부터 시작해 성공2회 후3개, 성공5�
 `campaign repair ROOT --group ID --repair-action begin|record|history --record RECORD.json`
 은 가설·변경·실제 검증을 최대3회 기록합니다. 이후에는 관련 문제들을 모아 사용자에게
 진행 방식을 묻습니다. 이 관리자가 유료 LLM을 호출하거나 커널을 임의 수정하지는 않습니다.
-공유 규칙·런타임 결함은 FHA가 필요한 한 부분만 읽고 TCLMachine을 직접 수정/검증합니다.
+공유 규칙·런타임 결함은 FHA가 필요한 한 부분만 읽고 furyNo5을 직접 수정/검증합니다.
 
 ## 설치
 
@@ -188,7 +188,7 @@ LLM을 호출하지 않습니다. macOS 알림 센터로 한 번 전달하고 �
 보수적 파라미터 상한을 확인합니다. 접근 불가/추출 미지원은 NPU 미지원 판정이
 아니며 다음 후보를 찾습니다. 재개 계획의 `previous_root`에 이전 야간 결과 경로를
 주면 완료된 모델은 중복 처리하지 않습니다. GPT-2 별칭과 결합 QKV 구조는
-TCLMachine 추출 규칙으로 지원하며 다른 구조를 이름만 바꿔 통과시키지 않습니다.
+furyNo5 추출 규칙으로 지원하며 다른 구조를 이름만 바꿔 통과시키지 않습니다.
 
 ## 지속 개선 작업 관리자
 
@@ -214,7 +214,7 @@ touch /root/TPLMachine/reports/continuous-improvement-20261108/STOP.json
 않습니다. CPU 병행 중 NPU 검증은 정확성/trace 검사이며 하드웨어 속도 정답이
 아닙니다. 성능 측정은 별도 독점 실행이 필요합니다.
 
-실패는 개별 결과·TCLMachine 중복 문제 보고서에 남겨 다른 계약을 계속 처리합니다.
+실패는 개별 결과·furyNo5 중복 문제 보고서에 남겨 다른 계약을 계속 처리합니다.
 관리자가 커널을 임의 수정하거나 LLM을 호출하지 않습니다. 해결되지 않은 동일
 계약은 코드 버전/입력 계약이 바뀌기 전에는 재시도하지 않습니다. 모든 준비된
 고유 계약을 처리하면 새 카탈로그/규칙 입력을 기다립니다. 유용한 작업 없이
@@ -247,7 +247,7 @@ started before this feature needs a boundary handoff/restart; editing its source
 does not update code already loaded in memory. Existing campaign `stop` retains
 its immediate/cooperative cancellation semantics.
 
-### TCLMachine 0.4 region data
+### furyNo5 0.4 region data
 
 The continuous controller fingerprints the optional MLP region rules and preserves
 existing receipts and mm cost-cache identities. Explicit SiLU configurations also
@@ -263,7 +263,7 @@ exhausted unique admitted contracts; this is not a crash. Check training receipt
 separately. Failed fitting preserves the previous registered model. A changed trainer
 fingerprint creates a new attempt directory, preserving old errors rather than
 permanently reusing a failed result. Large merged training indexes are sharded by
-TCLMachine while retaining the strict per-file JSON bound.
+furyNo5 while retaining the strict per-file JSON bound.
 
 ### Qualify optimizer changes through the librarian
 
@@ -287,4 +287,4 @@ until resumed. Raw traces stay on the execution host, with JSON summary reports.
 
 ## 정적 FXB 실패 자동 수집
 
-서로 다른 구조를 대표하는 캐시 모델로 TCLMachine의 정적 실행 계획 생성과 fxbX 적재/실행을 단계별 검증합니다. 실패 노드·입력·버전·소스 해시·재현 자료를 보존하고 GitHub 이슈로 이어서 조사할 수 있습니다. [한국어 사용법](docs/STATIC_FAILURES.md)과 [최초 수집 결과 및 이슈 인덱스](https://github.com/smallstep-zzz/TCLMachine/issues/8)를 참고하세요.
+서로 다른 구조를 대표하는 캐시 모델로 furyNo5의 정적 실행 계획 생성과 fxbX 적재/실행을 단계별 검증합니다. 실패 노드·입력·버전·소스 해시·재현 자료를 보존하고 GitHub 이슈로 이어서 조사할 수 있습니다. [한국어 사용법](docs/STATIC_FAILURES.md)과 [최초 수집 결과 및 이슈 인덱스](https://github.com/smallstep-zzz/furyNo5/issues/8)를 참고하세요.
