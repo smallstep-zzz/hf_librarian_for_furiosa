@@ -5,7 +5,7 @@ description: Research, classify, and maintain Hugging Face test models for Furio
 
 # Hugging Face model librarian
 
-For one known error or a small rule edit, FHA should call furyNo5 directly.
+For one known error or a small rule edit, FHA should call FuryNo5 directly.
 Use this librarian for model/category preparation and unattended multi-model
 improvement campaigns. It is not a mandatory hop for every test.
 
@@ -36,7 +36,7 @@ why/change/actual validation and permits at most3 attempts; aggregate unresolved
 groups into one user decision. No automatic paid LLM call is made by the manager.
 
 Cost policy: official Furiosa estimates first; on failure, a compatible validated
-furyNo5 predictor may return a tagged fallback. Predictions are not real NPU
+FuryNo5 predictor may return a tagged fallback. Predictions are not real NPU
 latency or training truth. Without a compatible prior return unknown.
 
 Use the installed `hf-librarian` command. Do not edit catalog JSON directly. `hf-librarian categories`, `list --category CATEGORY`, `settings`, `status`, and `blacklist` show current state. Model IDs are exact Hugging Face IDs.
