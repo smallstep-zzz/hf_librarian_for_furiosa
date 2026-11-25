@@ -69,6 +69,13 @@ CPU는 별도 SDK 프로세스2개부터 시작해 성공2회 후3개, 성공5�
 
 ## 설치
 
+3D 모델처럼 구성요소별 YAML 설정을 쓰는 경우, 모델 등록 레코드에
+`config_file: "hunyuan3d-dit-v2-mini-turbo/config.yaml"`을 지정할 수 있습니다.
+`get --id MODEL --profile config`는 지정한 JSON/YAML 파일 하나만 표준 HF 캐시에
+준비하고 그 파일이 있는 폴더를 반환합니다. 생략하면 기존 `config.json`을 사용합니다.
+구성 파일은 1MiB 이하이며, 가중치는 받지 않습니다. 파일별 캐시 키와 SHA-256으로
+재사용하므로 같은 모델의 DiT와 VAE 설정이 서로 섞이지 않습니다.
+
 ```bash
 cd /root/hf_librarian_for_furiosa
 python3 -m pip install -e .
