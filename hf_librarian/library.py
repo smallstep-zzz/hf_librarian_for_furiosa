@@ -6,7 +6,7 @@ import os
 import shutil
 import subprocess
 import threading
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from huggingface_hub import HfApi, snapshot_download
 from huggingface_hub.constants import HF_HUB_CACHE
@@ -65,8 +65,21 @@ class Librarian:
                 self._inflight[key] = future
             return future
 
+    @staticmethod
+    def _config_identity(model):
+        filename = model.get('config_file', 'config.json')
+        if (not isinstance(filename, str) or not filename or '\\' in filename or '\x00' in filename
+                or any(c in filename for c in '*?[]')
+                or filename.startswith('/') or any(p in ('', '.', '..') for p in filename.split('/'))
+                or PurePosixPath(filename).suffix not in ('.json', '.yaml', '.yml')):
+            raise ValueError('config_file must be a relative JSON or YAML file path')
+        identity = [model['id'], model.get('revision', 'main'), 'config-v1']
+        if filename != 'config.json':
+            identity = [model['id'], model.get('revision', 'main'), 'config-v2', filename]
+        return filename, hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+
     def _config(self, model):
-        key=hashlib.sha256(json.dumps([model['id'],model.get('revision','main'),'config-v1']).encode()).hexdigest()
+        _, key = self._config_identity(model)
         directory=self.cache/'.hf-librarian';directory.mkdir(exist_ok=True)
         import fcntl
         with (directory/(key+'.lock')).open('a') as lock:
@@ -79,27 +92,33 @@ class Librarian:
         """Metadata-only consumers must not download unused checkpoints."""
         from huggingface_hub import hf_hub_download
         model_id=model['id'];revision=model.get('revision','main')
-        key=hashlib.sha256(json.dumps([model_id,revision,'config-v1']).encode()).hexdigest()
+        filename, key = self._config_identity(model)
+        basename = PurePosixPath(filename).name
         marker=self.cache/'.hf-librarian'/(key+'.json')
         if marker.exists():
             try:
                 state=json.loads(marker.read_text());path=Path(state['path'])
-                if (path.resolve().is_relative_to(self.cache) and (path/'config.json').is_file()
-                    and (path/'config.json').stat().st_size<=1024**2
-                    and hashlib.sha256((path/'config.json').read_bytes()).hexdigest()==state['config_sha256']):
+                if (path.resolve().is_relative_to(self.cache) and (path/basename).is_file()
+                    and (path/basename).resolve().is_relative_to(self.cache)
+                    and (path/basename).stat().st_size<=1024**2
+                    and hashlib.sha256((path/basename).read_bytes()).hexdigest()==state['config_sha256']):
                     self.emit('available',model_id,path=str(path),profile='config');return str(path)
             except (OSError,ValueError,KeyError,TypeError):pass
         self.emit('missing',model_id,profile='config')
         info=HfApi().model_info(model_id,revision=revision,files_metadata=True)
         count=getattr(getattr(info,'safetensors',None),'total',None)
         if count and count>20_000_000_000:raise ValueError('20B model ceiling exceeded')
-        entry=next((s for s in info.siblings if s.rfilename=='config.json'),None)
-        if entry is None or entry.size is None or entry.size>1024**2:raise ValueError('bounded config.json unavailable')
+        entry=next((s for s in info.siblings if s.rfilename==filename),None)
+        if entry is None or entry.size is None or not 0 <= entry.size <= 1024**2:
+            raise ValueError(f'bounded {filename} unavailable')
         disk=shutil.disk_usage(self.cache)
         if disk.used/disk.total>=.9 or disk.free<self.settings['min_free_gib']*GIB:raise RuntimeError('disk reserve gate')
         self.emit('downloading',model_id,profile='config',bytes=entry.size)
-        config=Path(hf_hub_download(model_id,'config.json',revision=info.sha,cache_dir=str(self.cache)))
+        config=Path(hf_hub_download(model_id,filename,revision=info.sha,cache_dir=str(self.cache)))
+        if not config.resolve().is_relative_to(self.cache) or config.stat().st_size > 1024**2:
+            raise ValueError('Downloaded config is outside the cache or exceeds 1 MiB')
         state={'model_id':model_id,'commit':info.sha,'path':str(config.parent),'profile':'config',
+               'config_file':filename,
                'config_sha256':hashlib.sha256(config.read_bytes()).hexdigest(),'parameter_count':count,
                'license':getattr(info,'card_data',{}).get('license') if getattr(info,'card_data',None) else None}
         marker.parent.mkdir(exist_ok=True);temp=marker.with_suffix('.tmp');temp.write_text(json.dumps(state));os.replace(temp,marker)
